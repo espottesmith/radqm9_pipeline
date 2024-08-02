@@ -22,11 +22,6 @@ CUR_DIR = os.path.dirname(os.path.realpath(__file__))
 
 elements_dict = read_elements(os.path.join(CUR_DIR, 'elements.pkl'))
 
-# "total_dipole",
-# "resp_total_dipole",
-# "quadrupole_moment",
-# "octopole_moment",
-# "hexadecapole_moment",
 
 def create_properties_dataset(
     store: Store,
@@ -59,7 +54,12 @@ def create_properties_dataset(
     additional_opt_fields: List[str] = list(),
     additional_sp_fields: List[str] = [
         "reduction_free_energy",
-        "oxidation_free_energy"
+        "oxidation_free_energy",
+        "total_dipole",
+        "resp_total_dipole",
+        "quadrupole_moment",
+        "octopole_moment",
+        "hexadecapole_moment"
     ]
 ):
     """
@@ -97,6 +97,11 @@ def create_properties_dataset(
             are optional. Defaults include:
                 - "reduction_free_energy"
                 - "oxidation_free_energy"
+                - "total_dipole"
+                - "resp_total_dipole"
+                - "quadrupole_moment"
+                - "octopole_moment"
+                - "hexadecapole_moment"
     """
 
     total = store.count(criteria=query)

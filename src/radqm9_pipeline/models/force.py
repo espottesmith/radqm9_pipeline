@@ -12,7 +12,7 @@ from emmet.core.qchem.task import TaskDocument
 from emmet.core.molecules.molecule_property import PropertyDoc
 
 
-__author__ = "Evan Spotte-Smith <ewcspottesmith@lbl.gov>"
+__author__ = "Evan Spotte-Smith <ewcspottesmith@cmu.edu>"
 
 
 class ForcePointDoc(PropertyDoc):

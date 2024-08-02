@@ -236,7 +236,8 @@ class TrajectoryBuilder(Builder):
                 trajectory_doc = TrajectoryDoc.from_task(
                     task_doc, molecule_id=mol.molecule_id, deprecated=False
                 )
-                trajectory_docs.append(trajectory_doc)
+                if trajectory_doc is not None:
+                    trajectory_docs.append(trajectory_doc)
 
         self.logger.debug(f"Produced {len(trajectory_docs)} trajectory docs for {shash}")
 

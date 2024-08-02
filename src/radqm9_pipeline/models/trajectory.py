@@ -14,7 +14,7 @@ from emmet.core.qchem.task import TaskDocument
 from emmet.core.molecules.molecule_property import PropertyDoc
 
 
-__author__ = "Evan Spotte-Smith <ewcspottesmith@lbl.gov>"
+__author__ = "Evan Spotte-Smith <ewcspottesmith@cmu.edu>"
 
 
 class TrajectoryDoc(PropertyDoc):
@@ -254,6 +254,19 @@ class TrajectoryDoc(PropertyDoc):
                     if np.allclose(last, seclast):
                         this_resp_partial_charges = this_resp[:-1]
 
+            if any(
+                [
+                    x is None for x in [
+                        this_dipole_moments,
+                        this_resp_dipole_moments,
+                        this_mulliken_partial_charges,
+                        this_mulliken_partial_spins,
+                        this_resp_partial_charges
+                    ]
+                ]
+            ):
+                continue
+
             geometries.append(this_geometries)
             energies.append(this_energies)
             total_gradients.append(this_total_gradients)
@@ -266,6 +279,9 @@ class TrajectoryDoc(PropertyDoc):
             resp_dipole_moments.append(this_resp_dipole_moments)
 
         num_trajectories = len(geometries)
+
+        if num_trajectories == 0:
+            return None
 
         id_string = f"trajectory-{molecule_id}-{task.task_id}-{task.lot_solvent}"
         h = blake2b()
