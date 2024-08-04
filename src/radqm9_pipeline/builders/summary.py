@@ -34,8 +34,10 @@ class SummaryBuilder(Builder):
     def __init__(
         self,
         molecules: Store,
+        bonds: Store,
         charges: Store,
         spins: Store,
+        orbitals: Store,
         multipoles: Store,
         redox: Store,
         thermo: Store,
@@ -46,8 +48,10 @@ class SummaryBuilder(Builder):
         **kwargs,
     ):
         self.molecules = molecules
+        self.bonds = bonds
         self.charges = charges
         self.spins = spins
+        self.orbitals = orbitals
         self.multipoles = multipoles
         self.redox = redox
         self.thermo = thermo
@@ -60,8 +64,10 @@ class SummaryBuilder(Builder):
         super().__init__(
             sources=[
                 molecules,
+                bonds
                 charges,
                 spins,
+                orbitals
                 multipoles,
                 redox,
                 thermo,
@@ -73,8 +79,10 @@ class SummaryBuilder(Builder):
         # Uncomment in case of issue with mrun not connecting automatically to collections
         # for i in [
         #     self.molecules,
+        #     self.bonds,
         #     self.charges,
         #     self.spins,
+        #     self.orbitals,
         #     self.multipoles,
         #     self.redox,
         #     self.thermo,
@@ -98,6 +106,15 @@ class SummaryBuilder(Builder):
         self.molecules.ensure_index("formula_alphabetical")
         self.molecules.ensure_index("species_hash")
 
+        # Search index for bonding
+        self.bonds.ensure_index("molecule_id")
+        self.bonds.ensure_index("task_id")
+        self.bonds.ensure_index("solvent")
+        self.bonds.ensure_index("lot_solvent")
+        self.bonds.ensure_index("property_id")
+        self.bonds.ensure_index("last_updated")
+        self.bonds.ensure_index("formula_alphabetical")
+
         # Search index for charges
         self.charges.ensure_index("molecule_id")
         self.charges.ensure_index("method")
@@ -117,6 +134,15 @@ class SummaryBuilder(Builder):
         self.spins.ensure_index("property_id")
         self.spins.ensure_index("last_updated")
         self.spins.ensure_index("formula_alphabetical")
+
+        # Search index for orbitals
+        self.orbitals.ensure_index("molecule_id")
+        self.orbitals.ensure_index("task_id")
+        self.orbitals.ensure_index("solvent")
+        self.orbitals.ensure_index("lot_solvent")
+        self.orbitals.ensure_index("property_id")
+        self.orbitals.ensure_index("last_updated")
+        self.orbitals.ensure_index("formula_alphabetical")
 
         # Search index for multipoles
         self.multipoles.ensure_index("molecule_id")
@@ -277,6 +303,9 @@ class SummaryBuilder(Builder):
 
             d = {
                 "molecules": mol,
+                "bonding": _group_docs(
+                    list(self.bonds.query({"molecule_id": mol_id})), True
+                ),
                 "partial_charges": _group_docs(
                     list(self.charges.query({"molecule_id": mol_id})), True
                 ),
@@ -285,6 +314,9 @@ class SummaryBuilder(Builder):
                 ),
                 "multipole_moments": _group_docs(
                     list(self.multipoles.query({"molecule_id": mol_id})), False
+                ),
+                "orbitals": _group_docs(
+                    list(self.orbitals.query({"molecule_id": mol_id})), False
                 ),
                 "redox": _group_docs(
                     list(self.redox.query({"molecule_id": mol_id})), False

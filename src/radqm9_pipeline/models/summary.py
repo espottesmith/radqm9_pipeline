@@ -27,6 +27,7 @@ class HasProps(Enum):
     molecules = "molecules"
     bonding = "bonding"
     orbitals = "orbitals"
+    multipoles = "multipoles"
     partial_charges = "partial_charges"
     partial_spins = "partial_spins"
     redox = "redox"
@@ -182,6 +183,52 @@ class RadQM9SummaryDoc(PropertyDoc):
         None,
         title="Raman activities",
         description="List indicating if frequency-modes are Raman-active",
+    )
+
+    # multipoles
+    multipoles_property_ids: Optional[Dict[str, str]] = Field(
+        None,
+        description="Solvent:property ID map for each ElectricMultipoleDoc for this molecule.",
+    )
+
+    multipoles_levels_of_theory: Optional[Dict[str, str]] = Field(
+        None,
+        description="Solvent:level of theory map for each ElectricMultipoleDoc for this molecule.",
+    )
+
+    total_dipole: Optional[Dict[str, float]] = Field(
+        ...,
+        description="Total molecular dipole moment (Debye)",
+    )
+
+    dipole_moment: Optional[Dict[str, Vector3D]] = Field(
+        ...,
+        description="Molecular dipole moment vector (Debye)",
+    )
+
+    resp_total_dipole: Optional[Dict[str, Optional[float]]] = Field(
+        None,
+        description="Total dipole moment, calculated via restrained electrostatic potential (RESP) (Debye)",
+    )
+
+    resp_dipole_moment: Optional[Dict[str, Optional[Vector3D]]] = Field(
+        None,
+        description="Molecular dipole moment vector, calculated via RESP (Debye)",
+    )
+
+    quadrupole_moment: Optional[Dict[str, Optional[Dict[str, float]]]] = Field(
+        None,
+        description="Quadrupole moment components (Debye Ang)",
+    )
+
+    octopole_moment: Optional[Dict[str, Optional[Dict[str, float]]]] = Field(
+        None,
+        description="Octopole moment components (Debye Ang^2)",
+    )
+
+    hexadecapole_moment: Optional[Dict[str, Optional[Dict[str, float]]]] = Field(
+        None,
+        description="Hexadecapole moment tensor components (Debye Ang^2)",
     )
 
     # natural bonding orbitals
@@ -455,6 +502,15 @@ summary_fields: Dict[str, list] = {
         "beta_bonds",
         "alpha_interactions",
         "beta_interactions",
+    ],
+    HasProps.multipoles.value: [
+        "total_dipole",
+        "dipole_moment",
+        "resp_total_dipole",
+        "resp_dipole_moment",
+        "quadrupole_moment",
+        "octopole_moment",
+        "hexadecapole_moment"
     ],
     HasProps.partial_charges.value: ["partial_charges"],
     HasProps.partial_spins.value: ["partial_spins"],
