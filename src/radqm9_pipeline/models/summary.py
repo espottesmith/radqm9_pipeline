@@ -44,9 +44,9 @@ class RadQM9SummaryDoc(PropertyDoc):
     property_name: str = "summary"
 
     # molecules
-    molecules: Dict[str, Molecule] = Field(
+    molecule: Molecule = Field(
         ...,
-        description="The lowest energy optimized structures for this molecule for each solvent.",
+        description="The lowest energy optimized structure for this molecule for each solvent.",
     )
 
     molecule_levels_of_theory: Optional[Dict[str, str]] = Field(
@@ -198,12 +198,12 @@ class RadQM9SummaryDoc(PropertyDoc):
     )
 
     total_dipole: Optional[Dict[str, float]] = Field(
-        ...,
+        None,
         description="Total molecular dipole moment (Debye)",
     )
 
     dipole_moment: Optional[Dict[str, Vector3D]] = Field(
-        ...,
+        None,
         description="Molecular dipole moment vector (Debye)",
     )
 
@@ -451,7 +451,7 @@ summary_fields: Dict[str, list] = {
         "formula_alphabetical",
         "chemsys",
         "symmetry",
-        "molecules",
+        "molecule",
         "deprecated",
         "task_ids",
         "species_hash",
