@@ -78,15 +78,6 @@ class RadQM9SummaryDoc(PropertyDoc):
         description="List of Calculation IDs associated with this molecule.",
     )
 
-    similar_molecules: List[MPculeID] = Field(
-        [], description="IDs associated with similar molecules"
-    )
-
-    constituent_molecules: List[MPculeID] = Field(
-        [],
-        description="IDs of associated MoleculeDocs used to construct this molecule.",
-    )
-
     unique_calc_types: Optional[List[CalcType]] = Field(
         None,
         description="Collection of all unique calculation types used for this molecule",
@@ -463,8 +454,6 @@ summary_fields: Dict[str, list] = {
         "unique_levels_of_theory",
         "unique_solvents",
         "unique_lot_solvents",
-        "similar_molecules",
-        "constituent_molecules",
         "molecule_levels_of_theory",
     ],
     HasProps.thermo.value: [
