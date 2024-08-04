@@ -17,7 +17,7 @@ from emmet.core.molecules.metal_binding import MetalBindingData
 __author__ = "Evan Spotte-Smith <ewcspottesmith@lbl.gov>"
 
 
-T = TypeVar("T", bound="MoleculeSummaryDoc")
+T = TypeVar("T", bound="RadQM9SummaryDoc")
 
 
 class HasProps(Enum):
@@ -436,7 +436,7 @@ class RadQM9SummaryDoc(PropertyDoc):
 
         doc["has_props"] = list(set(doc["has_props"]))
 
-        return MoleculeSummaryDoc(molecule_id=molecule_id, **doc)
+        return RadQM9SummaryDoc(molecule_id=molecule_id, **doc)
 
 
 # Key mapping
