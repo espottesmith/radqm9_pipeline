@@ -64,10 +64,10 @@ class SummaryBuilder(Builder):
         super().__init__(
             sources=[
                 molecules,
-                bonds
+                bonds,
                 charges,
                 spins,
-                orbitals
+                orbitals,
                 multipoles,
                 redox,
                 thermo,
