@@ -8,9 +8,9 @@
 #SBATCH -c 128
 
 export SLURM_CPU_BIND="cores"
-srun python ../src/radqm9_pipeline/processing/process_dataset.py \
-    --file="/pscratch/sd/m/mavaylon/sam_ldrd/all_clean_charge_full_chunked/charge_spin_test/charge_spin_test_0_3" \
+srun python /pscratch/sd/m/mavaylon/sam_ldrd/radqm9_pipeline/src/radqm9_pipeline/processing/process_dataset.py \
+    --file="/pscratch/sd/m/mavaylon/chem_final_data/Traj/Chunked_data/FullData/rad_qm9_traj_train05.xyz" \
     --forces_key="forces" \
-    --prefix="charge_spin_test_0_3_" \
-    --directory="/pscratch/sd/m/mavaylon/chem_directory/charge_spin_test_0_3" \
+    --prefix="vac_05_" \
+    --directory="/pscratch/sd/m/mavaylon/chem_final_data/Traj/Chunked_data/FullData/h5/chunk05" \
 
