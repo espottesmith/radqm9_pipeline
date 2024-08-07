@@ -1,3 +1,5 @@
+import ase
+
 def get_molecule_weight(data: list):
     dict_dist = {}
     data_dict = {}

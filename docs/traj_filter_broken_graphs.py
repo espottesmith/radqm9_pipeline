@@ -33,7 +33,7 @@ from maggma.stores.mongolike import MongoStore
 force_store = MongoStore(database="thermo_chem_storage",
                            collection_name="radqm9_trajectories",
                            username="thermo_chem_storage_ro",
-                           password="***REMOVED***",
+                           password="2322jj2dsd",
                            host="mongodb07.nersc.gov",
                            port=27017,
                            key="molecule_id")
