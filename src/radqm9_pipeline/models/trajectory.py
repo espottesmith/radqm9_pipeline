@@ -253,17 +253,23 @@ class TrajectoryDoc(PropertyDoc):
                     if np.allclose(last, seclast):
                         this_resp_partial_charges = this_resp[:-1]
 
-            if any(
-                [
-                    x is None for x in [
-                        this_dipole_moments,
-                        this_resp_dipole_moments,
-                        this_mulliken_partial_charges,
-                        this_mulliken_partial_spins,
-                        this_resp_partial_charges
-                    ]
+            if mol.spin_multiplicity == 1:
+                to_check = [
+                    this_dipole_moments,
+                    this_resp_dipole_moments,
+                    this_mulliken_partial_charges,
+                    this_resp_partial_charges
                 ]
-            ):
+            else:
+                to_check = [
+                    this_dipole_moments,
+                    this_resp_dipole_moments,
+                    this_mulliken_partial_charges,
+                    this_mulliken_partial_spins,
+                    this_resp_partial_charges
+                ]
+
+            if any([x is None for x in to_check]):
                 continue
 
             geometries.append(this_geometries)
