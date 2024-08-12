@@ -965,7 +965,7 @@ if __name__ == "__main__":
     cd_neutral = chunk_data(wtd_neutral, fractions)
 
     for ii, frac in enumerate(fractions):
-        chunk_file = os.path.join(minimal_data_path, 'radqm9_65_10_25_trajectory_minimal_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
+        chunk_file = os.path.join(minimal_data_path, 'radqm9_65_10_25_trajectory_minimal_data_20240807_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_minimal[ii],format="extxyz")
         
         for key in cd_cs:
@@ -1155,7 +1155,7 @@ if __name__ == "__main__":
     cd_neutral = chunk_data(wtd_neutral, fractions)
 
     for ii, frac in enumerate(fractions):
-        chunk_file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
+        chunk_file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240807_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_minimal[ii],format="extxyz")
         
         for key in cd_cs:
