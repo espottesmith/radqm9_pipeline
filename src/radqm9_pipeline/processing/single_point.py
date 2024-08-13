@@ -74,12 +74,6 @@ def filter_duplicate_and_missing_data(data: list):
     return filtered_data
 
 
-def add_unique_id(data: list):
-    for item in tqdm(data):
-        item['charge_spin'] = str(item['charge']) + str(item['spin'])
-        item['mol_cs'] = str(item['mol_id']) + str(item['charge_spin'])
-
-
 def flatten_list(input_list):
     flattened_list = []
     for item in input_list:
@@ -119,7 +113,7 @@ def generate_resp_dipole(data: list): #THIS IS GOOD
 
 def resolve_mulliken_partial_spins(data: list):
     for item in tqdm(data):
-        if item['charge_spin']=='01':
+        if item['charge_spin']=='0_1':
             if item['mulliken_partial_spins'] is None or None in item['mulliken_partial_spins']:
                 charge_array = np.array(item['mulliken_partial_charges'])
                 item['mulliken_partial_spins'] = np.zeros(charge_array.shape, dtype=float).tolist()
@@ -153,6 +147,32 @@ def force_magnitude_filter(cutoff: float,
             good.append(item)
                             
     return good
+
+
+def filter_broken_graphs(data: list):
+    broken = []
+    good = []
+    
+    for item in tqdm(data):
+        if item['charge_spin'] == '0_1':
+            good.append(item)
+        else:
+            isbroken = False
+            broken_index=[]
+            for i in range(len(item['geometries'])):
+                graph = build_graph(item['species'], item['geometries'][i])
+                connected = nx.is_connected(graph.graph.to_undirected())
+                if not connected:
+                    isbroken = True
+                    broken_index.append(i)
+            if not isbroken:
+                good.append(item)
+            else:
+                broken.append(item)
+            
+            item['broken_index'] = broken_index
+
+    return good, broken
 
             
 def filter_charges(data: list, charge: list):
@@ -256,7 +276,7 @@ def build_atoms(data: dict,
         if i == 0:
             atoms.info['position_type'] = 'start'
         if i == 1:
-            if data['charge_spin'] == '0,1':
+            if data['charge_spin'] == '0_1':
                 atoms.info['position_type'] = 'end'
             else:
                 atoms.info['position_type'] = 'middle'
@@ -300,7 +320,7 @@ def build_atoms_minimal(data: dict,
         if i == 0:
             atoms.info['position_type'] = 'start'
         if i == 1:
-            if data['charge_spin'] == '0,1':
+            if data['charge_spin'] == '0_1':
                 atoms.info['position_type'] = 'end'
             else:
                 atoms.info['position_type'] = 'middle'
@@ -430,8 +450,26 @@ def weight_to_data_ase(data: list):
 if __name__ == "__main__":
 
     base_path = ""
-    vacuum_data_path = ""
-    smd_data_path = ""
+
+    vacuum_data_path = os.path.join(base_path, "vacuum")
+    vacuum_minimal_path = os.path.join(vacuum_data_path, "minimal")
+    vacuum_full_path = os.path.join(vacuum_data_path, "full")
+
+    smd_data_path = os.path.join(base_path, "smd")
+    smd_minimal_path = os.path.join(smd_data_path, "minimal")
+    smd_full_path = os.path.join(smd_data_path, "full")
+
+    for path in [
+        base_path,
+        vacuum_data_path,
+        smd_data_path,
+        vacuum_minimal_path,
+        vacuum_full_path,
+        smd_minimal_path,
+        smd_full_path
+    ]:
+        if not os.path.exists(path):
+            os.mkdir(path)
 
     elements_dict = read_elements('/global/home/users/ewcspottesmith/software/radqm9_pipeline/src/radqm9_pipeline/elements/elements.pkl')
 
@@ -495,7 +533,7 @@ if __name__ == "__main__":
         else:
             item['solvent'] = "SMD"
 
-        item['charge_spin'] = str(item['charge']) + '_' + str(item['spin'])
+        item['charge_spin'] = str(int(item['charge'])) + '_' + str(int(item['spin']))
 
         molid_contents = item['mol_id'].split('-')
         parent_charge = molid_contents[2].replace("m", "-")
@@ -536,9 +574,14 @@ if __name__ == "__main__":
     dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
     dumpfn(smd_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
+    vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
+    smd_data, smd_ood = filter_broken_graphs(smd_data)
+
     # TODO: you are here
 
-    wtd = weight_to_data(c_data)
+    # Vacuum data
+
+    wtd = weight_to_data(vacuum_data)
     sld = length_dict(wtd)
 
     train_mass = ['152.037'] # EVAN WILL NEED TO ADJUST THE MASSES OF INITIAL POINTS FOR NEW DATA

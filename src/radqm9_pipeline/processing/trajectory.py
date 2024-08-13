@@ -94,7 +94,7 @@ from maggma.stores.mongolike import MongoStore
 
 def add_unique_id(data: list):
     for item in tqdm(data):
-        item['charge_spin'] = str(item['charge']) + str(item['spin'])
+        item['charge_spin'] = str(item['charge']) + "_" + str(item['spin'])
         item['mol_cs'] = str(item['mol_id']) + str(item['charge_spin'])
 
 
@@ -170,7 +170,7 @@ def generate_resp_dipole(data: list): #THIS IS GOOD
 
 def resolve_mulliken_partial_spins(data: list):
     for item in tqdm(data):
-        if item['charge_spin']=='01':
+        if item['charge_spin']=='0_1':
             if item['mulliken_partial_spins'] is None or None in item['mulliken_partial_spins']:
                 charge_array = np.array(item['mulliken_partial_charges'])
                 item['mulliken_partial_spins'] = np.zeros(charge_array.shape, dtype=float).tolist()
@@ -180,7 +180,7 @@ def filter_data(data: list):
     good = []
     # filtered = []
     for item in data:
-        if item['charge_spin'] != '01':
+        if item['charge_spin'] != '0_1':
             if len(item['gradients']) < 2:
                 # filtered.append(item)
                 continue
@@ -287,7 +287,7 @@ def sparse_trajectory(data: list):
 
     for pair in tqdm(data):
         try:
-            if pair['charge_spin'] == '01':
+            if pair['charge_spin'] == '0_1':
                 geometries = [pair['geometries'][0], pair['geometries'][-1]]
                 energies = [pair['energy'][0], pair['energy'][-1]]
                 grads = [pair['gradients'][0], pair['gradients'][-1]]
@@ -405,7 +405,7 @@ def build_atoms(data: dict,
         if i == 0:
             atoms.info['position_type'] = 'start'
         if i == 1:
-            if data['charge_spin'] == '0,1':
+            if data['charge_spin'] == '0_1':
                 atoms.info['position_type'] = 'end'
             else:
                 atoms.info['position_type'] = 'middle'
@@ -449,7 +449,7 @@ def build_atoms_minimal(data: dict,
         if i == 0:
             atoms.info['position_type'] = 'start'
         if i == 1:
-            if data['charge_spin'] == '0,1':
+            if data['charge_spin'] == '0_1':
                 atoms.info['position_type'] = 'end'
             else:
                 atoms.info['position_type'] = 'middle'
@@ -589,7 +589,7 @@ def filter_broken_graphs(data: list):
     good = []
     
     for item in tqdm(data):
-        if item['charge_spin'] == '01':
+        if item['charge_spin'] == '0_1':
             good.append(item)
         else:
             isbroken = False
@@ -613,8 +613,8 @@ def filter_broken_graphs(data: list):
 if __name__ == "__main__":
 
     base_path = ""
-    full_data_path = ""
-    minimal_data_path = ""
+    full_data_path = os.path.join(base_path, "full")
+    minimal_data_path = os.path.join(base_path, "minimal")
 
     elements_dict = read_elements('/global/cfs/projectdirs/matgen/ewcss/radqm9/radqm9_pipeline/src/radqm9_pipeline/elements/elements.pkl')
 
@@ -777,7 +777,7 @@ if __name__ == "__main__":
             test += sld[mass]
 
     sld = length_dict(wtd) # you need to call this again yes
-    
+
     data = {
         "train": list(),
         "val": list(),
