@@ -867,8 +867,9 @@ if __name__ == "__main__":
         file = os.path.join(minimal_chargespin_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_test_'+key+'.xyz')
         ase.io.write(file, test_cs_dict[key],format="extxyz")
 
-        file = os.path.join(minimal_chargespin_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_ood_'+key+'.xyz')
-        ase.io.write(file, ood_cs_dict[key],format="extxyz")
+        if key in ood_cs_dict:
+            file = os.path.join(minimal_chargespin_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_ood_'+key+'.xyz')
+            ase.io.write(file, ood_cs_dict[key],format="extxyz")
 
     # Doublet
     minimal_doublet_path = os.path.join(minimal_data_path, "doublet")
@@ -1058,8 +1059,9 @@ if __name__ == "__main__":
         file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240807_test_'+key+'.xyz')
         ase.io.write(file, test_cs_dict[key],format="extxyz")
 
-        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240807_ood_'+key+'.xyz')
-        ase.io.write(file, ood_cs_dict[key], format="extxyz")
+        if key in ood_cs_dict:
+            file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240807_ood_'+key+'.xyz')
+            ase.io.write(file, ood_cs_dict[key], format="extxyz")
 
     # Doublet
     full_doublet_path = os.path.join(full_data_path, "doublet")
