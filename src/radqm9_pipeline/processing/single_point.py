@@ -158,19 +158,14 @@ def filter_broken_graphs(data: list):
             good.append(item)
         else:
             isbroken = False
-            broken_index=[]
-            for i in range(len(item['geometries'])):
-                graph = build_graph(item['species'], item['geometries'][i])
-                connected = nx.is_connected(graph.graph.to_undirected())
-                if not connected:
-                    isbroken = True
-                    broken_index.append(i)
-            if not isbroken:
+
+            graph = build_graph(item['species'], item['geometry'])
+            connected = nx.is_connected(graph.graph.to_undirected())
+                
+            if connected:
                 good.append(item)
             else:
                 broken.append(item)
-            
-            item['broken_index'] = broken_index
 
     return good, broken
 
@@ -250,19 +245,19 @@ def build_atoms(data: dict,
         
     Both "energy" and "forces" are the dict strings in data.
     """
-    atom_list = []
-    for i in range(len(data['geometries'])):
-        atoms = ase.atoms.Atoms(
-            symbols=data['species'],
-            positions=data['geometries'][i]
-        )
-        atoms.arrays['mulliken_partial_charges']=np.array(data['mulliken_partial_charges'][i])
-        atoms.arrays['mulliken_partial_spins']=np.array(data['mulliken_partial_spins'][i])
-        atoms.arrays['resp_partial_charges']=np.array(data['resp_partial_charges'][i])
-        atoms.info['dipole_moments'] = np.array(data['dipole_moments'][i])
-        atoms.info['resp_dipole_moments'] = np.array(data['resp_dipole_moments'][i])
-        atoms.info['calc_resp_dipole_moments']=np.array(data['calc_resp_dipole_moments'][i])
-        atoms.info['weight'] = data['weight']
+
+    atoms = ase.atoms.Atoms(
+        symbols=data['species'],
+        positions=data['geometry']
+    )
+
+    atoms.arrays['mulliken_partial_charges'] = np.array(data['mulliken_partial_charges'])
+    atoms.arrays['mulliken_partial_spins'] = np.array(data['mulliken_partial_spins'])
+    atoms.arrays['resp_partial_charges'] = np.array(data['resp_partial_charges'])
+    atoms.info['dipole_moment'] = np.array(data['dipole_moment'])
+    atoms.info['resp_dipole_moment'] = np.array(data['resp_dipole_moment'])
+    atoms.info['calc_resp_dipole_moment']=np.array(data['calc_resp_dipole_moment'])
+    atoms.info['weight'] = data['weight']
         
         if energy is not None:
             atoms.info['energy'] = data[energy][i]
@@ -299,41 +294,33 @@ def build_atoms_minimal(data: dict,
         
     Both "energy" and "forces" are the dict strings in data.
     """
-    atom_list = []
-    for i in range(len(data['geometries'])):
-        atoms = ase.atoms.Atoms(
-            symbols=data['species'],
-            positions=data['geometries'][i]
-        )
-        
-        atoms.info['weight'] = data['weight']
 
-        if energy is not None:
-            atoms.info['energy'] = data[energy][i]
-        if forces is not None:
-            atoms.arrays['forces'] = np.array(data[forces][i])
-        if charge is not None:
-             atoms.info['charge'] = data[charge]
-        if spin is not None:
-            atoms.info['spin'] = data[spin]
-        atoms.info['mol_id'] = data['mol_id']
-        if i == 0:
-            atoms.info['position_type'] = 'start'
-        if i == 1:
-            if data['charge_spin'] == '0_1':
-                atoms.info['position_type'] = 'end'
-            else:
-                atoms.info['position_type'] = 'middle'
-        if i == 2:
-            atoms.info['position_type'] = 'end'
-        atom_list.append(atoms)
-    return atom_list
+    atoms = ase.atoms.Atoms(
+        symbols=data['species'],
+        positions=data['geometry']
+    )
+        
+    atoms.info['weight'] = data['weight']
+
+    if energy is not None:
+        atoms.info['energy'] = data[energy]
+    if forces is not None:
+        atoms.arrays['forces'] = np.array(data[forces])
+    if charge is not None:
+        atoms.info['charge'] = data[charge]
+    if spin is not None:
+        atoms.info['spin'] = data[spin]
+    atoms.info['mol_id'] = data['mol_id']
+
+    atoms.info['sp_config_type'] = atoms.info['sp_config_type']
+
+    return atoms
 
 
 def build_atoms_iterator(
     data: list,
     energy: str = "energy",
-    forces: str = "gradients",
+    forces: str = "gradient",
     charge:str = "charge",
     spin:str = "spin"
 ):
@@ -353,7 +340,7 @@ def build_atoms_iterator(
 def build_minimal_atoms_iterator(
     data: list,
     energy: str = "energy",
-    forces: str = "gradients",
+    forces: str = "gradient",
     charge:str = "charge",
     spin:str = "spin"
 ):
@@ -584,13 +571,13 @@ if __name__ == "__main__":
     wtd = weight_to_data(vacuum_data)
     sld = length_dict(wtd)
 
-    train_mass = ['152.037'] # EVAN WILL NEED TO ADJUST THE MASSES OF INITIAL POINTS FOR NEW DATA
-    test_mass = ['144.092']
-    val_mass = ['143.108']
+    vac_train_mass = ['152.037'] # EVAN WILL NEED TO ADJUST THE MASSES OF INITIAL POINTS FOR NEW DATA
+    vac_test_mass = ['144.092']
+    vac_val_mass = ['143.108']
 
-    train = sld['152.037'] # trackers for dataset sizes
-    test = sld['144.092']
-    val = sld['143.108']
+    vac_train = sld['152.037'] # trackers for dataset sizes
+    vac_test = sld['144.092']
+    vac_val = sld['143.108']
 
     sld.pop('152.037')
     sld.pop('144.092')
@@ -599,56 +586,72 @@ if __name__ == "__main__":
     # Sort the data 
     # data is a dict: mass-># of trajs
     for mass in sld:
-        temp_total = train + val + test
-        train_ratio = .65 - (train / temp_total)
-        test_ratio = .25 - (test / temp_total)
-        val_ratio = .1 - (val / temp_total)
+        temp_total = vac_train + vac_val + vac_test
+        train_ratio = .65 - (vac_train / temp_total)
+        test_ratio = .25 - (vac_test / temp_total)
+        val_ratio = .1 - (vac_val / temp_total)
         
-        if train_ratio > val_ratio and train_ratio>test_ratio:
-            train_mass.append(mass)
-            train += sld[mass]
-        elif val_ratio > train_ratio and val_ratio>test_ratio:
-            val_mass.append(mass)
-            val += sld[mass]
-        elif test_ratio > val_ratio and test_ratio>train_ratio:
-            test_mass.append(mass)
-            test += sld[mass]
+        if train_ratio > val_ratio and train_ratio > test_ratio:
+            vac_train_mass.append(mass)
+            vac_train += sld[mass]
+        elif val_ratio > train_ratio and val_ratio > test_ratio:
+            vac_val_mass.append(mass)
+            vac_val += sld[mass]
+        else:
+            vac_test_mass.append(mass)
+            vac_test += sld[mass]
 
     sld = length_dict(wtd) # you need to call this again yes
 
-    train_subset={key: sld[key] for key in train_mass if key in sld}
-    test_subset={key: sld[key] for key in test_mass if key in sld}
-    val_subset={key: sld[key] for key in val_mass if key in sld}
+    vac_switch = [
+        "117.039",
+        "116.204",
+        "116.160",
+        "115.096",
+        "115.095",
+        "112.054",
+        "112.05",
+        "111.148",
+        "102.089",
+        "101.065",
+        "101.061",
+        "100.205",
+        "99.053",
+        "99.049",
+        "98.189",
+        "95.023",
+        "94.117",
+        "85.106",
+        "84.078",
+        "83.046"
+    ]
 
-    train_temp=[[x]*train_subset[x] for x in train_subset]
-    test_temp=[[x]*test_subset[x] for x in test_subset]
-    val_temp=[[x]*val_subset[x] for x in val_subset]
+    for mass in vac_switch:
+        vac_val_mass.append(mass)
+        vac_val += sorted_length_dict[mass]
+        
+        vac_test_mass.remove(mass)
+        vac_test -= sorted_length_dict[mass]
 
-    train_subset_merged = list(chain.from_iterable(train_temp))
-    test_subset_merged = list(chain.from_iterable(test_temp))
-    val_subset_merged = list(chain.from_iterable(val_temp))
+    vac_train_data = [wtd[x] for x in vac_train_mass]
+    vac_train_data = list(chain.from_iterable(vac_train_data))
 
-    distribution = {
-        "train": train_subset_merged,
-        "val": val_subset_merged,
-        "test": test_subset_merged
+    vac_val_data = [wtd[x] for x in vac_val_mass]
+    vac_val_data = list(chain.from_iterable(vac_val_data))
+
+    vac_test_data = [wtd[x] for x in vac_test_mass]
+    vac_test_data = list(chain.from_iterable(vac_test_data))
+
+    vac_data = {
+        'train':vac_train_data,
+        'val': vac_val_data,
+        'test': vac_test_data
     }
-
-    data = {
-        "train": list(),
-        "val": list(),
-        "test": list()
-    }
-
-    for split, masses in [("train", train_mass), ("val", val_mass), ("test", test_mass)]:
-        for mass in masses:
-            for mpoint in wtd[mass]:
-                data[split].append(mpoint)
 
     # Minimal build
-    build_minimal = dict()
+    vac_build_minimal = dict()
     for split in data:
-        build_minimal[split] = build_minimal_atoms_iterator(data[split], energy="energies")
+        vac_build_minimal[split] = build_minimal_atoms_iterator(vac_data[split], energy="energy")
         
     create_dataset(build_minimal, 'radqm9_65_10_25_trajectory_minimal_data_20240807', minimal_data_path)
 

@@ -772,7 +772,7 @@ if __name__ == "__main__":
         elif val_ratio > train_ratio and val_ratio>test_ratio:
             val_mass.append(mass)
             val += sld[mass]
-        elif test_ratio > val_ratio and test_ratio>train_ratio:
+        else:
             test_mass.append(mass)
             test += sld[mass]
 
