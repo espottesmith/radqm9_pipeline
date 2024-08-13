@@ -988,7 +988,7 @@ if __name__ == "__main__":
         
     create_dataset(build_full, 'radqm9_65_10_25_trajectory_full_data_20240807', full_data_path)
 
-    ood_full = build_minimal_atoms_iterator(ood, energy="energies")
+    ood_full = build_atoms_iterator(ood, energy="energies")
     file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240807_ood.xyz')
     ase.io.write(file, ood_full, format="extxyz")
 
