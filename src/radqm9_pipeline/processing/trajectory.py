@@ -777,25 +777,7 @@ if __name__ == "__main__":
             test += sld[mass]
 
     sld = length_dict(wtd) # you need to call this again yes
-
-    # train_subset={key: sld[key] for key in train_mass if key in sld}
-    # test_subset={key: sld[key] for key in test_mass if key in sld}
-    # val_subset={key: sld[key] for key in val_mass if key in sld}
-
-    # train_temp=[[x]*train_subset[x] for x in train_subset]
-    # test_temp=[[x]*test_subset[x] for x in test_subset]
-    # val_temp=[[x]*val_subset[x] for x in val_subset]
-
-    # train_subset_merged = list(chain.from_iterable(train_temp))
-    # test_subset_merged = list(chain.from_iterable(test_temp))
-    # val_subset_merged = list(chain.from_iterable(val_temp))
-
-    # distribution = {
-    #     "train": train_subset_merged,
-    #     "val": val_subset_merged,
-    #     "test": test_subset_merged
-    # }
-
+    
     data = {
         "train": list(),
         "val": list(),

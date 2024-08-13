@@ -108,25 +108,13 @@ def filter_field(data, field):
 
 def generate_resp_dipole(data: list): #THIS IS GOOD
     for item in tqdm(data):
-        resp_dipole = []
-        resp_dipole_conv = []
-        for i in range(len(item['resp_partial_charges'])):
-            resp_partial_charges = np.array(item['resp_partial_charges'][i])
-            geometries = np.array(item['geometries'][i])
-            
-            # Calculate dipole moment components
-            dipole_components = resp_partial_charges[:, np.newaxis] * geometries
-            
-            # Sum the dipole moment components along axis 0 to get the total dipole moment vector
-            dipole_moment = np.sum(dipole_components, axis=0)
-            dipole_moment_conv = np.sum(dipole_components, axis=0)*(1/0.2081943)
-            
-            # Append dipole moment to resp_dipole list
-            resp_dipole.append(dipole_moment.tolist())  # Convert numpy array to list
-            # Append dipole moment to resp_dipole list
-            resp_dipole_conv.append(dipole_moment_conv.tolist())  # Convert numpy array to list
-        
-        item['calc_resp_dipole_moments'] = resp_dipole_conv
+        resp_partial_charges = np.array(item['resp_partial_charges'])
+        geometry = np.array(item['geometry'])
+
+        dipole_components = resp_partial_charges[:, np.newaxis] * geometries
+        dipole_moment = np.sum(dipole_components, axis=0) * (1 / 0.208193)
+
+        item['calc_resp_dipole_moment'] = dipole_moment.tolist()
 
 
 def resolve_mulliken_partial_spins(data: list):
@@ -146,30 +134,25 @@ def force_magnitude_filter(cutoff: float,
     Returns: lists
     """
     good = []
-    bad = []
     for item in tqdm(data):
-        forces = item['gradients']
-        for path_point in forces:
-            next_item = False
-            for atom in path_point:
-                try:
-                    res = np.sqrt(sum([i**2 for i in atom]))
-                    if res >= cutoff:
-                        bad.append(item)
-                        next_item = True
-                        break
-                except TypeError:
-                    res = np.sqrt(sum([i**2 for i in atom[0]]))
-                    if res >= cutoff:
-                        bad.append(item)
-                        next_item = True
-                        break
-            if next_item:
-                break
+        forces = item['gradient']
+        for atom in forces:
+            try:
+                res = np.sqrt(sum([i**2 for i in atom]))
+                if res >= cutoff:
+                    bad.append(item)
+                    next_item = True
+                    break
+            except TypeError:
+                res = np.sqrt(sum([i**2 for i in atom[0]]))
+                if res >= cutoff:
+                    bad.append(item)
+                    next_item = True
+                    break
         if not next_item:
             good.append(item)
                             
-    return good, bad
+    return good
 
             
 def filter_charges(data: list, charge: list):
@@ -185,21 +168,17 @@ def filter_charges(data: list, charge: list):
 
 def convert_energy_forces(data: list):
     for item in tqdm(data):
-        energy = item['energy']
-        item['energy'] = [x*27.2114 for x in energy]
+        item['energy'] *= 27.2114
 
-        forces = item['gradients']
-        traj_arr = []
-        for traj_point in forces:
-            atom_arr = []
-            for atom in traj_point:
-                comp_arr = []
-                for component in atom:
-                    new_component = component * 51.42208619083232
-                    comp_arr.append(new_component)
-                atom_arr.append(comp_arr)
-            traj_arr.append(atom_arr)
-        item['gradients'] = traj_arr
+        forces = item['gradient']
+        atom_arr = []
+        for atom in forces:
+            comp_arr = []
+            for component in atom:
+                new_component = component * 51.42208619083232
+                comp_arr.append(new_component)
+            atom_arr.append(comp_arr)
+        item['gradient'] = atom_arr
 
 
 def molecule_weight(data: list, elements_dict: dict[str, float]):
@@ -451,8 +430,8 @@ def weight_to_data_ase(data: list):
 if __name__ == "__main__":
 
     base_path = ""
-    full_data_path = ""
-    minimal_data_path = ""
+    vacuum_data_path = ""
+    smd_data_path = ""
 
     elements_dict = read_elements('/global/home/users/ewcspottesmith/software/radqm9_pipeline/src/radqm9_pipeline/elements/elements.pkl')
 
@@ -466,7 +445,7 @@ if __name__ == "__main__":
                             key="molecule_id")
     force_store.connect()
 
-    raw_data = []
+    data = []
     for entry in tqdm(
         force_store.query(
             {
@@ -527,56 +506,37 @@ if __name__ == "__main__":
         else:
             item['sp_config_type'] = 'vertical'
 
-        raw_data.append(item)
+        data.append(item)
 
-    filtered_data = filter_duplicate_and_missing_data(raw_data)
+    generate_resp_dipole(data)
+
+    resolve_mulliken_partial_spins(data)
+
+    dumpfn(data, os.path.join(base_path, "raw_sp_data.json"))
+
+    data = filter_duplicate_and_missing_data(data)
+
+    data = force_magnitude_filter(cutoff=10.0, data=data)
+
+    convert_energy_forces(data)
+
+    molecule_weight(data, elements_dict)
+
+    vacuum_data = []
+    smd_data = []
+    for item in data:
+        solv = item['solvent']
+        
+        if solv == 'vacuum':
+            vacuum_data.append(item)
+        
+        elif solv == 'SMD':
+            smd_data.append(item)
+
+    dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
+    dumpfn(smd_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
     # TODO: you are here
-    # TODO: separate into vacuum vs. SMD
-
-
-    add_unique_id(r_data)
-
-    dimension(r_data)
-
-    pc = filter_field(r_data, 'mulliken_partial_charges')
-    ps = filter_field(r_data, 'mulliken_partial_spins')
-    rpc = filter_field(r_data, 'resp_partial_charges')
-    dm = filter_field(r_data, 'dipole_moments')
-    rdm = filter_field(r_data, 'resp_dipole_moments')
-
-    missing_data = {
-        "mulliken_partial_charges": {x: len(pc[x]) for x in pc.keys()},
-        "mulliken_partial_spins": {x: len(ps[x]) for x in ps.keys()},
-        "resp_partial_charges": {x: len(rpc[x]) for x in rpc.keys()},
-        "dipole_moments": {x: len(dm[x]) for x in dm.keys()},
-        "resp_dipole_moments": {x: len(rdm[x]) for x in rdm.keys()},
-    }
-
-    dumpfn(missing_data, os.path.join(base_path, "missing_data.json"))
-
-    generate_resp_dipole(r_data)
-
-    resolve_mulliken_partial_spins(r_data)
-
-    dumpfn(r_data, os.path.join(base_path, "raw_trajectory_data.json"))
-
-    g_data, f_data = filter_data(r_data)
-
-    c_data, b_data = force_magnitude_filter(cutoff=10.0, data=g_data)
-
-    convert_energy_forces(c_data)
-
-    molecule_weight(c_data, elements_dict)
-
-    traj_all = build_atoms_iterator(c_data)
-
-    file = os.path.join(base_path, 'radqm9_65_10_25_trajectory_data_20240807_all.xyz')
-    ase.io.write(file, traj_all, format="extxyz")
-
-    sparse_trajectory(c_data)
-
-    dumpfn(c_data, os.path.join(base_path, "clean_trajectory_data.json"))
 
     wtd = weight_to_data(c_data)
     sld = length_dict(wtd)
