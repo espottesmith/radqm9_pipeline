@@ -111,12 +111,17 @@ def generate_resp_dipole(data: list): #THIS IS GOOD
         item['calc_resp_dipole_moment'] = dipole_moment.tolist()
 
 
-def resolve_mulliken_partial_spins(data: list):
+def resolve_partial_spins(data: list):
     for item in tqdm(data):
         if item['charge_spin']=='0_1':
             if item['mulliken_partial_spins'] is None or None in item['mulliken_partial_spins']:
                 charge_array = np.array(item['mulliken_partial_charges'])
                 item['mulliken_partial_spins'] = np.zeros(charge_array.shape, dtype=float).tolist()
+
+            if item['nbo_partial_spins'] is None or None in item['nbo_partial_spins']:
+                if item['nbo_partial_charges'] is not None and None not in item['nbo_partial_charges']:
+                    charge_array = np.array(item['nbo_partial_charges'])
+                    item['nbo_partial_spins'] = np.zeros(charge_array.shape, dtype=float).tolist()
 
 
 def force_magnitude_filter(cutoff: float,
@@ -254,6 +259,9 @@ def build_atoms(data: dict,
     atoms.arrays['mulliken_partial_charges'] = np.array(data['mulliken_partial_charges'])
     atoms.arrays['mulliken_partial_spins'] = np.array(data['mulliken_partial_spins'])
     atoms.arrays['resp_partial_charges'] = np.array(data['resp_partial_charges'])
+    atoms.arrays['nbo_partial_charges'] = np.array(data['nbo_partial_charges'])
+    atoms.arrays['nbo_partial_spins'] = np.array(data['nbo_partial_spins'])
+
     atoms.info['dipole_moment'] = np.array(data['dipole_moment'])
     atoms.info['resp_dipole_moment'] = np.array(data['resp_dipole_moment'])
     atoms.info['calc_resp_dipole_moment']=np.array(data['calc_resp_dipole_moment'])
@@ -535,7 +543,7 @@ if __name__ == "__main__":
 
     generate_resp_dipole(data)
 
-    resolve_mulliken_partial_spins(data)
+    resolve_partial_spins(data)
 
     dumpfn(data, os.path.join(base_path, "raw_sp_data.json"))
 
@@ -563,8 +571,6 @@ if __name__ == "__main__":
 
     vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
     smd_data, smd_ood = filter_broken_graphs(smd_data)
-
-    # TODO: you are here
 
     # Vacuum data
 
@@ -651,40 +657,48 @@ if __name__ == "__main__":
     # Minimal build
     vac_build_minimal = dict()
     for split in data:
-        vac_build_minimal[split] = build_minimal_atoms_iterator(vac_data[split], energy="energy")
+        vac_build_minimal[split] = build_minimal_atoms_iterator(vac_data[split], forces="precise_gradient")
         
-    create_dataset(build_minimal, 'radqm9_65_10_25_trajectory_minimal_data_20240807', minimal_data_path)
+    create_dataset(vac_build_minimal, 'radqm9_65_10_25_sp_minimal_data_20240807', vacuum_minimal_path)
 
     # Charge/spin subsets
-    train_cs_dict = {}
-    for item in tqdm(build_minimal['train']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+    vac_train_cs_dict = {}
+    for item in tqdm(vac_build_minimal['train']):
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
-            train_cs_dict[key].append(item)
+            vac_train_cs_dict[key].append(item)
         except KeyError:
-            train_cs_dict[key] = [item]
+            vac_train_cs_dict[key] = [item]
 
-    val_cs_dict = {}
-    for item in tqdm(build_minimal['val']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+    vac_val_cs_dict = {}
+    for item in tqdm(vac_build_minimal['val']):
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
-            val_cs_dict[key].append(item)
+            vac_val_cs_dict[key].append(item)
         except KeyError:
-            val_cs_dict[key] = [item]
+            vac_val_cs_dict[key] = [item]
 
-    test_cs_dict = {}
-    for item in tqdm(build_minimal['test']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+    vac_test_cs_dict = {}
+    for item in tqdm(vac_build_minimal['test']):
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
-            test_cs_dict[key].append(item)
+            vac_test_cs_dict[key].append(item)
         except KeyError:
-            test_cs_dict[key] = [item]
+            vac_test_cs_dict[key] = [item]
+
+    vac_ood_cs_dict = {}
+    for item in tqdm(vac_build_minimal['test']):
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
+        try:
+            vac_test_cs_dict[key].append(item)
+        except KeyError:
+            vac_test_cs_dict[key] = [item]
 
     # Split by charge/spin pair
     # Use this for relative energies
-    minimal_chargespin_path = os.path.join(minimal_data_path, "by_charge_spin")
-    if not os.path.exists(minimal_chargespin_path):
-        os.mkdir(minimal_chargespin_path)
+    vacuum_minimal_chargespin_path = os.path.join(vacuum_minimal_path, "by_charge_spin")
+    if not os.path.exists(vacuum_minimal_chargespin_path):
+        os.mkdir(vacuum_minimal_chargespin_path)
 
     for key in test_cs_dict:
         file = os.path.join(minimal_chargespin_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_train'+key+'.xyz')

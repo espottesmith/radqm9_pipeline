@@ -803,7 +803,7 @@ if __name__ == "__main__":
     # Charge/spin subsets
     train_cs_dict = {}
     for item in tqdm(build_minimal['train']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             train_cs_dict[key].append(item)
         except KeyError:
@@ -811,7 +811,7 @@ if __name__ == "__main__":
 
     val_cs_dict = {}
     for item in tqdm(build_minimal['val']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             val_cs_dict[key].append(item)
         except KeyError:
@@ -819,7 +819,7 @@ if __name__ == "__main__":
 
     test_cs_dict = {}
     for item in tqdm(build_minimal['test']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             test_cs_dict[key].append(item)
         except KeyError:
@@ -827,7 +827,7 @@ if __name__ == "__main__":
 
     ood_cs_dict = {}
     for item in tqdm(ood_minimal):
-        key = str(item.info['charge']) + str(item.info['spin'])
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             ood_cs_dict[key].append(item)
         except KeyError:
@@ -995,7 +995,7 @@ if __name__ == "__main__":
     # Charge/spin subsets
     train_cs_dict = {}
     for item in tqdm(build_full['train']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             train_cs_dict[key].append(item)
         except KeyError:
@@ -1003,7 +1003,7 @@ if __name__ == "__main__":
 
     val_cs_dict = {}
     for item in tqdm(build_full['val']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             val_cs_dict[key].append(item)
         except KeyError:
@@ -1011,7 +1011,7 @@ if __name__ == "__main__":
 
     test_cs_dict = {}
     for item in tqdm(build_full['test']):
-        key = str(item.info['charge'])+str(item.info['spin'])
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             test_cs_dict[key].append(item)
         except KeyError:
@@ -1019,7 +1019,7 @@ if __name__ == "__main__":
 
     ood_cs_dict = {}
     for item in tqdm(ood_full):
-        key = str(item.info['charge']) + str(item.info['spin'])
+        key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             ood_cs_dict[key].append(item)
         except KeyError:
