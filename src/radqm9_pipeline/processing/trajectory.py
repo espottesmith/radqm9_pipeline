@@ -616,7 +616,7 @@ if __name__ == "__main__":
     full_data_path = os.path.join(base_path, "full")
     minimal_data_path = os.path.join(base_path, "minimal")
 
-    elements_dict = read_elements('/global/cfs/projectdirs/matgen/ewcss/radqm9/radqm9_pipeline/src/radqm9_pipeline/elements/elements.pkl')
+    elements_dict = read_elements('/global/home/users/ewcspottesmith/software/radqm9_pipeline/src/radqm9_pipeline/elements/elements.pkl')
 
     # Trajectory information
     traj_store = MongoStore(database="thermo_chem_storage",
