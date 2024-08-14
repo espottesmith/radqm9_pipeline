@@ -267,26 +267,26 @@ def build_atoms(data: dict,
     atoms.info['calc_resp_dipole_moment']=np.array(data['calc_resp_dipole_moment'])
     atoms.info['weight'] = data['weight']
         
-        if energy is not None:
-            atoms.info['energy'] = data[energy][i]
-        if forces is not None:
-            atoms.arrays['forces'] = np.array(data[forces][i])
-        if charge is not None:
-             atoms.info['charge'] = data[charge]
-        if spin is not None:
-            atoms.info['spin'] = data[spin]
-        atoms.info['mol_id'] = data['mol_id']
-        if i == 0:
-            atoms.info['position_type'] = 'start'
-        if i == 1:
-            if data['charge_spin'] == '0_1':
-                atoms.info['position_type'] = 'end'
-            else:
-                atoms.info['position_type'] = 'middle'
-        if i == 2:
+    if energy is not None:
+        atoms.info['energy'] = data[energy][i]
+    if forces is not None:
+        atoms.arrays['forces'] = np.array(data[forces][i])
+    if charge is not None:
+            atoms.info['charge'] = data[charge]
+    if spin is not None:
+        atoms.info['spin'] = data[spin]
+    atoms.info['mol_id'] = data['mol_id']
+    if i == 0:
+        atoms.info['position_type'] = 'start'
+    if i == 1:
+        if data['charge_spin'] == '0_1':
             atoms.info['position_type'] = 'end'
-        atom_list.append(atoms)
-    return atom_list
+        else:
+            atoms.info['position_type'] = 'middle'
+    if i == 2:
+        atoms.info['position_type'] = 'end'
+
+    return atoms
 
 
 def build_atoms_minimal(data: dict,
