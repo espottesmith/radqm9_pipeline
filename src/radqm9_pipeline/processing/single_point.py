@@ -105,7 +105,7 @@ def generate_resp_dipole(data: list): #THIS IS GOOD
         resp_partial_charges = np.array(item['resp_partial_charges'])
         geometry = np.array(item['geometry'])
 
-        dipole_components = resp_partial_charges[:, np.newaxis] * geometries
+        dipole_components = resp_partial_charges[:, np.newaxis] * geometry
         dipole_moment = np.sum(dipole_components, axis=0) * (1 / 0.208193)
 
         item['calc_resp_dipole_moment'] = dipole_moment.tolist()
