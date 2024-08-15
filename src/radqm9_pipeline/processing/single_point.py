@@ -31,10 +31,12 @@ def filter_duplicate_and_missing_data(data: list):
     for item in tqdm(data):
 
         item['dup_identifier'] = '_'.join(
-          item['charge_spin'],
-          item['sp_config_type'],
-          item['optimized_parent_charge_spin'],
-          item['solvent']  
+          [
+            item['charge_spin'],
+            item['sp_config_type'],
+            item['optimized_parent_charge_spin'],
+            item['solvent']
+          ]
         )
         
         try:
