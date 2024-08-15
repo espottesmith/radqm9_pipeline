@@ -127,16 +127,14 @@ def force_magnitude_filter(cutoff: float,
             try:
                 res = np.sqrt(sum([i**2 for i in atom]))
                 if res >= cutoff:
-                    bad.append(item)
-                    next_item = True
+                    problem = True
                     break
             except TypeError:
                 res = np.sqrt(sum([i**2 for i in atom[0]]))
                 if res >= cutoff:
-                    bad.append(item)
-                    next_item = True
+                    problem = True
                     break
-        if not next_item:
+        if not problem:
             good.append(item)
                             
     return good
