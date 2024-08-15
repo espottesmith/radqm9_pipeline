@@ -123,6 +123,7 @@ def force_magnitude_filter(cutoff: float,
     good = []
     for item in tqdm(data):
         forces = item['gradient']
+        problem = False
         for atom in forces:
             try:
                 res = np.sqrt(sum([i**2 for i in atom]))
