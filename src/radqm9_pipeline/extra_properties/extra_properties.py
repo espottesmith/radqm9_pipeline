@@ -1,6 +1,4 @@
 import os
-import collections
-from glob import glob
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -10,7 +8,6 @@ import ase
 import ase.io
 
 from maggma.core import Store
-from monty.serialization import loadfn
 
 from pymatgen.core.structure import Molecule
 from pymatgen.analysis.graphs import MoleculeGraph
@@ -30,7 +27,7 @@ def create_properties_dataset(
     solvents: List[str] = [
         "NONE",
         "SOLVENT=WATER"
-    ]
+    ],
     required_opt_fields: List[str] = [
         "zero_point_energy",
         "total_enthalpy",

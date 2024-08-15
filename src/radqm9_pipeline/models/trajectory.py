@@ -5,7 +5,6 @@ import numpy as np
 
 from pydantic import Field
 
-from pymatgen.core.periodic_table import Element
 from pymatgen.core.structure import Molecule
 
 from emmet.core.mpid import MPculeID

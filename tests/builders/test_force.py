@@ -1,7 +1,7 @@
 import pytest
 from maggma.stores import JSONStore, MemoryStore
 
-from emmet.builders.qchem.molecules import MoleculesAssociationBuilder, MoleculesBuilder
+from emmet.builders.qchem.molecules import MoleculesAssociationBuilder
 
 from radqm9_pipeline.builders.force import ForcesBuilder
 

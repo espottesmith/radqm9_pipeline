@@ -1,28 +1,7 @@
-import logging
 import ast
-import numpy as np
-import json
-import random
-import tqdm
-from glob import glob
-import h5py
-from ase.io import read
-import torch
-import multiprocessing as mp
-import os
-from typing import List, Tuple
 
 
-from mace.tools import to_numpy
-from mace import tools, data
-from mace.data.utils import (
-    save_AtomicData_to_HDF5,
-    save_configurations_as_HDF5,
-)
-from mace.tools.scripts_utils import get_dataset_from_xyz, get_atomic_energies
-from mace.tools.utils import AtomicNumberTable
-from mace.tools import torch_geometric
-from mace.modules import compute_statistics    
+from mace import data
 
 from data_arg_parser import build_default_arg_parser
 
@@ -32,7 +11,7 @@ args = build_default_arg_parser().parse_args()
 try:
     config_type_weights = ast.literal_eval(args.config_type_weights)
     assert isinstance(config_type_weights, dict)
-except Exception as e:  # pylint: disable=W0703
+except Exception:  # pylint: disable=W0703
     # Very 
     config_type_weights = {"Default": 1.0}
 

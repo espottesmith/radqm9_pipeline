@@ -1,10 +1,14 @@
+import itertools
 from monty.serialization import loadfn
 from tqdm import tqdm
-import collections
 from glob import glob
 import numpy as np
 import ase
 import ase.io
+from pymatgen.io.ase import AseAtomsAdaptor
+from pymatgen.analysis.graphs import MoleculeGraph
+from pymatgen.analysis.local_env import OpenBabelNN
+import networkx as nx
 
 from radqm9_pipeline.elements import read_elements
 
@@ -121,7 +125,6 @@ def flatten_filter(data: dict):
     return data_to_be_parsed    
 
 def dimension(data: list):
-    fields = []
     for item in tqdm(data): 
         if len(item['geometries']) == 1:
             item['geometries'] = item['geometries'][0]

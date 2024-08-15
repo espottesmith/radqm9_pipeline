@@ -2,7 +2,7 @@ import pytest
 
 from maggma.stores import JSONStore, MemoryStore
 
-from emmet.builders.qchem.molecules import MoleculesAssociationBuilder, MoleculesBuilder
+from emmet.builders.qchem.molecules import MoleculesAssociationBuilder
 from emmet.builders.molecules.atomic import PartialChargesBuilder, PartialSpinsBuilder
 from emmet.builders.molecules.electric import ElectricMultipoleBuilder
 from emmet.builders.molecules.redox import RedoxBuilder

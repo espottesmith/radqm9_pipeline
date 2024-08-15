@@ -11,7 +11,6 @@ from emmet.core.qchem.calc_types import CalcType, LevelOfTheory, TaskType
 from emmet.core.molecules.molecule_property import PropertyDoc
 from emmet.core.mpid import MPID, MPculeID
 from emmet.core.molecules.orbitals import NaturalPopulation, LonePair, Bond, Interaction
-from emmet.core.molecules.metal_binding import MetalBindingData
 
 
 __author__ = "Evan Spotte-Smith <ewcspottesmith@lbl.gov>"

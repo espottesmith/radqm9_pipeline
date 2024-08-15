@@ -4,11 +4,9 @@ import datetime
 
 import pytest
 
-import numpy as np
 
 from monty.io import zopen
 
-from pymatgen.core.structure import Molecule
 
 from emmet.core.qchem.task import TaskDocument
 

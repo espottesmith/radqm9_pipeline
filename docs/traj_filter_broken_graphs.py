@@ -1,30 +1,18 @@
 import ase
 import networkx as nx
-import os
-from monty.serialization import loadfn
-from glob import glob
-import time
 from tqdm import tqdm
-import collections
 import numpy as np
-import matplotlib.pyplot as plt
-import ast
 import h5py
 
 
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.analysis.graphs import MoleculeGraph
-from pymatgen.analysis.local_env import OpenBabelNN, CovalentBondNN
-from pymatgen.util.graph_hashing import weisfeiler_lehman_graph_hash
+from pymatgen.analysis.local_env import OpenBabelNN
 
 from radqm9_pipeline.elements import read_elements
-from radqm9_pipeline.modules import merge_data
 
 elements_dict = read_elements('/pscratch/sd/m/mavaylon/sam_ldrd/radqm9_pipeline/src/radqm9_pipeline/modules/elements.pkl')
 
-import sys
-from itertools import chain
-from pathlib import Path
 
 from maggma.stores.mongolike import MongoStore
 
@@ -67,7 +55,6 @@ dataset = filter_features(data)
 
 import itertools
 
-import itertools
 
 def resolve_trajectories(data: list):
     resolved_data = []
@@ -363,7 +350,6 @@ def filter_broken_graphs(data: list):
 
 filtered_good, broken =filter_broken_graphs(g_data)
 
-import h5py
 with h5py.File('...', 'w') as file:
     g1 =file.create_group('clean_data')
     raw=[]

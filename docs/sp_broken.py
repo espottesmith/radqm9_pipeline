@@ -1,30 +1,20 @@
-from ase.io import read
 import ase
 
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.analysis.graphs import MoleculeGraph
-from pymatgen.analysis.local_env import OpenBabelNN, CovalentBondNN
-from pymatgen.util.graph_hashing import weisfeiler_lehman_graph_hash
+from pymatgen.analysis.local_env import OpenBabelNN
 
 import networkx as nx
-import os
-from monty.serialization import loadfn
-from glob import glob
-import time
 from tqdm import tqdm
-import collections
-import numpy as np
-import matplotlib.pyplot as plt
 import ast
 
-from radqm9_pipeline.modules import merge_data, read_elements, force_magnitude_filter, flatten
+from radqm9_pipeline.modules import read_elements
 
 elements_dict = read_elements('/pscratch/sd/m/mavaylon/sam_ldrd/radqm9_pipeline/src/radqm9_pipeline/modules/elements.pkl')
 
 h5_spi_dir='/pscratch/sd/m/mavaylon/new_pipe/sp_raw_data.h5'
 
 import h5py
-import ast
 merged_file = h5py.File(h5_spi_dir, 'r')
 
 merged_data=[]

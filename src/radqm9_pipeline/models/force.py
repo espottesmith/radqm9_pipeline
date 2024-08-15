@@ -3,8 +3,6 @@ from hashlib import blake2b
 
 from pydantic import Field
 
-from pymatgen.core.structure import Molecule
-
 from emmet.core.math import Vector3D
 from emmet.core.mpid import MPculeID
 from emmet.core.material import PropertyOrigin

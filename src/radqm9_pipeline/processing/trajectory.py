@@ -1,20 +1,11 @@
-import collections
 import itertools
-from itertools import chain
-from glob import glob
 import math
 import os
-from pathlib import Path
-import sys
-import time
 
 import numpy as np
-import matplotlib.pyplot as plt
-from monty.serialization import loadfn, dumpfn
+from monty.serialization import dumpfn
 
 from tqdm import tqdm
-import h5py
-import ast
 
 import ase
 
@@ -22,11 +13,9 @@ import networkx as nx
 
 from pymatgen.io.ase import AseAtomsAdaptor
 from pymatgen.analysis.graphs import MoleculeGraph
-from pymatgen.analysis.local_env import OpenBabelNN, CovalentBondNN
-from pymatgen.util.graph_hashing import weisfeiler_lehman_graph_hash
+from pymatgen.analysis.local_env import OpenBabelNN
 
 from radqm9_pipeline.elements import read_elements
-from radqm9_pipeline.modules import merge_data
 
 from maggma.stores.mongolike import MongoStore
 

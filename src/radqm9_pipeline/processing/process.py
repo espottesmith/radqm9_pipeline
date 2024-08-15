@@ -9,16 +9,13 @@ import random
 import tqdm
 from glob import glob
 import h5py
-from ase.io import read
 import multiprocessing as mp
 import os
 from typing import List, Tuple
 
 
-from mace.tools import to_numpy
 from mace import tools, data
 from mace.data.utils import (
-    save_AtomicData_to_HDF5,
     save_configurations_as_HDF5,
 )
 from mace.tools.scripts_utils import get_dataset_from_xyz, get_atomic_energies
