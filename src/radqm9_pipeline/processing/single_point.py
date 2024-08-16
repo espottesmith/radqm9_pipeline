@@ -99,7 +99,7 @@ def generate_resp_dipole(data: list): #THIS IS GOOD
         item['calc_resp_dipole_moment'] = dipole_moment.tolist()
 
 
-def resolve_partial_spins(data: list):2
+def resolve_partial_spins(data: list):
     for item in tqdm(data):
         if item['charge_spin']=='0_1':
             if item['mulliken_partial_spins'] is None or None in item['mulliken_partial_spins']:
