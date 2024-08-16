@@ -159,9 +159,8 @@ def filter_broken_graphs(data: list):
     for item in tqdm(data):
         if item['charge_spin'] == '0_1':
             good.append(item)
+        
         else:
-            isbroken = False
-
             graph = build_graph(item['species'], item['geometry'])
             connected = nx.is_connected(graph.graph.to_undirected())
                 
