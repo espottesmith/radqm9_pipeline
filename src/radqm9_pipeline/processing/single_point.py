@@ -631,10 +631,10 @@ if __name__ == "__main__":
 
     for mass in vac_switch:
         vac_val_mass.append(mass)
-        vac_val += sorted_length_dict[mass]
+        vac_val += sld[mass]
         
         vac_test_mass.remove(mass)
-        vac_test -= sorted_length_dict[mass]
+        vac_test -= sld[mass]
 
     vac_train_data = [wtd[x] for x in vac_train_mass]
     vac_train_data = list(chain.from_iterable(vac_train_data))
@@ -1196,10 +1196,10 @@ if __name__ == "__main__":
 
     for mass in smd_switch:
         smd_val_mass.append(mass)
-        smd_val += sorted_length_dict[mass]
+        smd_val += sld[mass]
         
         smd_test_mass.remove(mass)
-        smd_test -= sorted_length_dict[mass]
+        smd_test -= sld[mass]
 
     smd_train_data = [wtd[x] for x in smd_train_mass]
     smd_train_data = list(chain.from_iterable(smd_train_data))
