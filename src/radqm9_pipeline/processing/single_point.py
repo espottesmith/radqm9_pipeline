@@ -654,7 +654,7 @@ if __name__ == "__main__":
 
     # Minimal build
     vac_build_minimal = dict()
-    for split in data:
+    for split in vac_data:
         vac_build_minimal[split] = build_minimal_atoms_iterator(vac_data[split], forces="precise_gradient")
         
     create_dataset(vac_build_minimal, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807', vacuum_minimal_path)
@@ -894,8 +894,8 @@ if __name__ == "__main__":
 
     # Full build
     vac_build_full = dict()
-    for split in data:
-        vac_build_full[split] = build_atoms_iterator(vacuum_data[split], forces="precise_gradient")
+    for split in vac_data:
+        vac_build_full[split] = build_atoms_iterator(vac_data[split], forces="precise_gradient")
         
     create_dataset(build_full, 'radqm9_65_10_25_sp_vacuum_full_data_20240807', vacuum_full_path)
 
@@ -1220,7 +1220,7 @@ if __name__ == "__main__":
 
     # Minimal build
     smd_build_minimal = dict()
-    for split in data:
+    for split in smd_data:
         smd_build_minimal[split] = build_minimal_atoms_iterator(smd_data[split], forces="precise_gradient")
         
     create_dataset(smd_build_minimal, 'radqm9_65_10_25_sp_smd_minimal_data_20240807', smd_minimal_path)
@@ -1460,7 +1460,7 @@ if __name__ == "__main__":
 
     # Full build
     smd_build_full = dict()
-    for split in data:
+    for split in smd_data:
         smd_build_full[split] = build_atoms_iterator(smd_data[split], forces="precise_gradient")
         
     create_dataset(build_full, 'radqm9_65_10_25_sp_smd_full_data_20240807', smd_full_path)
