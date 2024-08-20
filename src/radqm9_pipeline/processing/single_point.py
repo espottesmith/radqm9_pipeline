@@ -315,9 +315,9 @@ def build_atoms_minimal(data: dict,
         atoms.info['charge'] = data[charge]
     if spin is not None:
         atoms.info['spin'] = data[spin]
-    atoms.info['mol_id'] = data['mol_id']
 
-    atoms.info['sp_config_type'] = atoms.info['sp_config_type']
+    atoms.info['mol_id'] = data['mol_id']
+    atoms.info['sp_config_type'] = data['sp_config_type']
 
     return atoms
 
