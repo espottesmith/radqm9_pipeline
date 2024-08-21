@@ -637,20 +637,16 @@ if __name__ == "__main__":
             vac_test_mass.remove(mass)
             vac_test -= sld[mass]
 
-    vac_train_data = [wtd[x] for x in vac_train_mass]
-    vac_train_data = list(chain.from_iterable(vac_train_data))
-
-    vac_val_data = [wtd[x] for x in vac_val_mass]
-    vac_val_data = list(chain.from_iterable(vac_val_data))
-
-    vac_test_data = [wtd[x] for x in vac_test_mass]
-    vac_test_data = list(chain.from_iterable(vac_test_data))
-
     vac_data = {
-        'train':vac_train_data,
-        'val': vac_val_data,
-        'test': vac_test_data
+        "train": list(),
+        "val": list(),
+        "test": list()
     }
+
+    for split, masses in [("train", vac_train_mass), ("val", vac_val_mass), ("test", vac_test_mass)]:
+        for mass in masses:
+            for mpoint in wtd[mass]:
+                vac_data[split].append(mpoint)
 
     # Minimal build
     vac_build_minimal = dict()
@@ -1132,7 +1128,7 @@ if __name__ == "__main__":
     del wtd_doublet
     del wtd_neutral
 
-        # SMD data
+    # SMD data
 
     wtd = weight_to_data(smd_data)
     sld = length_dict(wtd)
@@ -1203,20 +1199,16 @@ if __name__ == "__main__":
             smd_test_mass.remove(mass)
             smd_test -= sld[mass]
 
-    smd_train_data = [wtd[x] for x in smd_train_mass]
-    smd_train_data = list(chain.from_iterable(smd_train_data))
-
-    smd_val_data = [wtd[x] for x in smd_val_mass]
-    smd_val_data = list(chain.from_iterable(smd_val_data))
-
-    smd_test_data = [wtd[x] for x in smd_test_mass]
-    smd_test_data = list(chain.from_iterable(smd_test_data))
-
     smd_data = {
-        'train':smd_train_data,
-        'val': smd_val_data,
-        'test': smd_test_data
+        "train": list(),
+        "val": list(),
+        "test": list()
     }
+
+    for split, masses in [("train", smd_train_mass), ("val", smd_val_mass), ("test", smd_test_mass)]:
+        for mass in masses:
+            for mpoint in wtd[mass]:
+                smd_data[split].append(mpoint)
 
     # Minimal build
     smd_build_minimal = dict()
