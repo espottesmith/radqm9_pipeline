@@ -451,123 +451,129 @@ if __name__ == "__main__":
     smd_minimal_path = os.path.join(smd_data_path, "minimal")
     smd_full_path = os.path.join(smd_data_path, "full")
 
-    for path in [
-        base_path,
-        vacuum_data_path,
-        smd_data_path,
-        vacuum_minimal_path,
-        vacuum_full_path,
-        smd_minimal_path,
-        smd_full_path
-    ]:
-        if not os.path.exists(path):
-            os.mkdir(path)
+    # for path in [
+    #     base_path,
+    #     vacuum_data_path,
+    #     smd_data_path,
+    #     vacuum_minimal_path,
+    #     vacuum_full_path,
+    #     smd_minimal_path,
+    #     smd_full_path
+    # ]:
+    #     if not os.path.exists(path):
+    #         os.mkdir(path)
 
     elements_dict = read_elements('/global/home/users/ewcspottesmith/software/radqm9_pipeline/src/radqm9_pipeline/elements/elements.pkl')
 
-    # Trajectory information
-    force_store = MongoStore(database="thermo_chem_storage",
-                            collection_name="radqm9_force",
-                            username="thermo_chem_storage_ro",
-                            password="",
-                            host="mongodb07.nersc.gov",
-                            port=27017,
-                            key="molecule_id")
-    force_store.connect()
+    # # Trajectory information
+    # force_store = MongoStore(database="thermo_chem_storage",
+    #                         collection_name="radqm9_force",
+    #                         username="thermo_chem_storage_ro",
+    #                         password="",
+    #                         host="mongodb07.nersc.gov",
+    #                         port=27017,
+    #                         key="molecule_id")
+    # force_store.connect()
 
-    data = []
-    for entry in tqdm(
-        force_store.query(
-            {
-                "precise_forces": {  # Tossing out 7513 datapoints; we can live with that
-                    "$ne": None
-                }
-            },
-            {
-                "molecule_id": 1,
-                "species": 1,
-                "charge": 1,
-                "spin_multiplicity": 1,
-                "coordinates": 1,
-                "energy": 1,
-                "forces": 1,
-                "mulliken_partial_charges": 1,
-                "mulliken_partial_spins": 1,
-                "resp_partial_charges": 1,
-                "dipole_moment": 1,
-                "resp_dipole_moment": 1,
-                "nbo_partial_charges": 1,  # OPTIONAL
-                "nbo_partial_spins": 1,  # OPTIONAL
-                "precise_forces": 1,
-                "solvent": 1,
-            }
-        )
-    ):
-        item = {}
-        item['mol_id'] = entry['molecule_id']
-        item['species'] = entry['species']
-        item['charge'] = entry['charge'] 
-        item['spin'] = entry['spin_multiplicity']
-        item['geometry'] = entry['coordinates']
-        item['energy'] = entry['energy']
-        item['gradient'] = entry['forces']
-        item['precise_gradient'] = entry['precise_forces']
-        item['mulliken_partial_charges'] = entry['mulliken_partial_charges']
-        item['mulliken_partial_spins'] = entry['mulliken_partial_spins']
-        item['resp_partial_charges'] = entry['resp_partial_charges']
-        item['dipole_moment'] = entry['dipole_moment']
-        item['resp_dipole_moment'] = entry['resp_dipole_moment']
-        item['nbo_partial_charges'] = entry['nbo_partial_charges']
-        item['nbo_partial_spins'] = entry['nbo_partial_spins']
+    # data = []
+    # for entry in tqdm(
+    #     force_store.query(
+    #         {
+    #             "precise_forces": {  # Tossing out 7513 datapoints; we can live with that
+    #                 "$ne": None
+    #             }
+    #         },
+    #         {
+    #             "molecule_id": 1,
+    #             "species": 1,
+    #             "charge": 1,
+    #             "spin_multiplicity": 1,
+    #             "coordinates": 1,
+    #             "energy": 1,
+    #             "forces": 1,
+    #             "mulliken_partial_charges": 1,
+    #             "mulliken_partial_spins": 1,
+    #             "resp_partial_charges": 1,
+    #             "dipole_moment": 1,
+    #             "resp_dipole_moment": 1,
+    #             "nbo_partial_charges": 1,  # OPTIONAL
+    #             "nbo_partial_spins": 1,  # OPTIONAL
+    #             "precise_forces": 1,
+    #             "solvent": 1,
+    #         }
+    #     )
+    # ):
+    #     item = {}
+    #     item['mol_id'] = entry['molecule_id']
+    #     item['species'] = entry['species']
+    #     item['charge'] = entry['charge'] 
+    #     item['spin'] = entry['spin_multiplicity']
+    #     item['geometry'] = entry['coordinates']
+    #     item['energy'] = entry['energy']
+    #     item['gradient'] = entry['forces']
+    #     item['precise_gradient'] = entry['precise_forces']
+    #     item['mulliken_partial_charges'] = entry['mulliken_partial_charges']
+    #     item['mulliken_partial_spins'] = entry['mulliken_partial_spins']
+    #     item['resp_partial_charges'] = entry['resp_partial_charges']
+    #     item['dipole_moment'] = entry['dipole_moment']
+    #     item['resp_dipole_moment'] = entry['resp_dipole_moment']
+    #     item['nbo_partial_charges'] = entry['nbo_partial_charges']
+    #     item['nbo_partial_spins'] = entry['nbo_partial_spins']
         
-        if entry['solvent'] == "NONE":
-            item['solvent'] = 'vacuum'
-        else:
-            item['solvent'] = "SMD"
+    #     if entry['solvent'] == "NONE":
+    #         item['solvent'] = 'vacuum'
+    #     else:
+    #         item['solvent'] = "SMD"
 
-        item['charge_spin'] = str(int(item['charge'])) + '_' + str(int(item['spin']))
+    #     item['charge_spin'] = str(int(item['charge'])) + '_' + str(int(item['spin']))
 
-        molid_contents = item['mol_id'].split('-')
-        parent_charge = molid_contents[2].replace("m", "-")
-        parent_spin = molid_contents[3]
-        item['optimized_parent_charge_spin'] = parent_charge + '_' + parent_spin
-        if item['charge_spin'] == item['optimized_parent_charge_spin']:
-            item['sp_config_type'] = 'optimized'
-        else:
-            item['sp_config_type'] = 'vertical'
+    #     molid_contents = item['mol_id'].split('-')
+    #     parent_charge = molid_contents[2].replace("m", "-")
+    #     parent_spin = molid_contents[3]
+    #     item['optimized_parent_charge_spin'] = parent_charge + '_' + parent_spin
+    #     if item['charge_spin'] == item['optimized_parent_charge_spin']:
+    #         item['sp_config_type'] = 'optimized'
+    #     else:
+    #         item['sp_config_type'] = 'vertical'
 
-        data.append(item)
+    #     data.append(item)
 
-    generate_resp_dipole(data)
+    # generate_resp_dipole(data)
 
-    resolve_partial_spins(data)
+    # resolve_partial_spins(data)
 
-    dumpfn(data, os.path.join(base_path, "raw_sp_data.json"))
+    # dumpfn(data, os.path.join(base_path, "raw_sp_data.json"))
 
-    data = filter_duplicate_and_missing_data(data)
+    # data = filter_duplicate_and_missing_data(data)
 
-    data = force_magnitude_filter(cutoff=10.0, data=data)
+    # data = force_magnitude_filter(cutoff=10.0, data=data)
 
-    convert_energy_forces(data)
+    # convert_energy_forces(data)
 
-    molecule_weight(data, elements_dict)
+    # molecule_weight(data, elements_dict)
 
-    vacuum_data = []
-    smd_data = []
-    for item in data:
-        solv = item['solvent']
+    # vacuum_data = []
+    # smd_data = []
+    # for item in data:
+    #     solv = item['solvent']
         
-        if solv == 'vacuum':
-            vacuum_data.append(item)
+    #     if solv == 'vacuum':
+    #         vacuum_data.append(item)
         
-        elif solv == 'SMD':
-            smd_data.append(item)
+    #     elif solv == 'SMD':
+    #         smd_data.append(item)
 
-    dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
-    dumpfn(smd_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
+    # dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
+    # dumpfn(smd_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
+
+    vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
+    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
     vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
-    smd_data, smd_ood = filter_broken_graphs(smd_data)
+    solvent_data, smd_ood = filter_broken_graphs(solvent_data)
+
+    dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
+    dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
 
     # Vacuum data
 
@@ -1130,7 +1136,7 @@ if __name__ == "__main__":
 
     # SMD data
 
-    wtd = weight_to_data(smd_data)
+    wtd = weight_to_data(solvent_data)
     sld = length_dict(wtd)
 
     smd_train_mass = ['152.037'] # EVAN WILL NEED TO ADJUST THE MASSES OF INITIAL POINTS FOR NEW DATA
