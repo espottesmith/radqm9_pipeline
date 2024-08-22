@@ -3,7 +3,7 @@ import math
 import os
 
 import numpy as np
-from monty.serialization import dumpfn
+from monty.serialization import dumpfn, loadfn
 from maggma.stores.mongolike import MongoStore
 
 from tqdm import tqdm
@@ -261,7 +261,7 @@ def build_atoms(data: dict,
 
     atoms.info['dipole_moment'] = np.array(data['dipole_moment'])
     atoms.info['resp_dipole_moment'] = np.array(data['resp_dipole_moment'])
-    atoms.info['calc_resp_dipole_moment']=np.array(data['calc_resp_dipole_moment'])
+    atoms.info['calc_resp_dipole_moment'] = np.array(data['calc_resp_dipole_moment'])
     atoms.info['weight'] = data['weight']
         
     if energy is not None:
@@ -273,15 +273,7 @@ def build_atoms(data: dict,
     if spin is not None:
         atoms.info['spin'] = data[spin]
     atoms.info['mol_id'] = data['mol_id']
-    if i == 0:
-        atoms.info['position_type'] = 'start'
-    if i == 1:
-        if data['charge_spin'] == '0_1':
-            atoms.info['position_type'] = 'end'
-        else:
-            atoms.info['position_type'] = 'middle'
-    if i == 2:
-        atoms.info['position_type'] = 'end'
+    atoms.info['sp_config_type'] = data['sp_config_type']
 
     return atoms
 
@@ -338,7 +330,7 @@ def build_atoms_iterator(
     data_set=[]
     for point in tqdm(data):
         atoms=build_atoms(point, energy=energy, forces=forces, charge=charge, spin=spin)
-        data_set+=atoms
+        data_set.append(atoms)
     return data_set
 
 
@@ -357,8 +349,8 @@ def build_minimal_atoms_iterator(
     """
     data_set=[]
     for point in tqdm(data):
-        atoms=build_atoms_minimal(point, energy=energy, forces=forces, charge=charge, spin=spin)
-        data_set+=atoms
+        atoms = build_atoms_minimal(point, energy=energy, forces=forces, charge=charge, spin=spin)
+        data_set.append(atoms)
     return data_set
 
 
@@ -378,13 +370,13 @@ def create_dataset(data: dict,
     test_data = data['test']
     
     train_file = os.path.join(path,file_name+'_train.xyz')
-    ase.io.write(train_file, train_data,format="extxyz")
+    ase.io.write(train_file, train_data, format="extxyz")
      
     val_file = os.path.join(path,file_name+'_val.xyz')
-    ase.io.write(val_file, val_data,format="extxyz")
+    ase.io.write(val_file, val_data, format="extxyz")
     
     test_file = os.path.join(path,file_name+'_test.xyz')
-    ase.io.write(test_file, test_data,format="extxyz")
+    ase.io.write(test_file, test_data, format="extxyz")
 
 
 def chunk_data(data: dict, chunks: list):
@@ -566,14 +558,17 @@ if __name__ == "__main__":
     # dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
     # dumpfn(smd_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
-    vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
-    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
+    # vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
+    # solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
-    vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
-    solvent_data, smd_ood = filter_broken_graphs(solvent_data)
+    # vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
+    # solvent_data, smd_ood = filter_broken_graphs(solvent_data)
 
-    dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
-    dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+    # dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
+    # dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+
+    vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
+    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
 
     # Vacuum data
 
