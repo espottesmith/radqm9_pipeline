@@ -591,17 +591,22 @@ if __name__ == "__main__":
     # dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
     # dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
-    # # vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
-    # # solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
+    vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
+    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
-    # vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
-    # solvent_data, smd_ood = filter_broken_graphs(solvent_data)
+    vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
+    solvent_data, smd_ood = filter_broken_graphs(solvent_data)
 
-    # dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
-    # dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+    dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
+    dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
 
-    vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
-    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+    dumpfn(vacuum_ood, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
+    dumpfn(solvent_ood, os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
+
+    # vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
+    # solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+    # vacuum_ood = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
+    # solvent_ood = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
 
     # Vacuum data
 
