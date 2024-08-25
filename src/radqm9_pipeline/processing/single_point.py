@@ -592,100 +592,100 @@ if __name__ == "__main__":
     # dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
     # vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
-    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
+    # solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
     # vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
-    solvent_data, solvent_ood = filter_broken_graphs(solvent_data)
+    # solvent_data, solvent_ood = filter_broken_graphs(solvent_data)
 
     # dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
-    dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+    # dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
 
     # dumpfn(vacuum_ood, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
-    dumpfn(solvent_ood, os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
+    # dumpfn(solvent_ood, os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
 
-    vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
-    # solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
-    vacuum_ood = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
-    # solvent_ood = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
+    # vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
+    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+    # vacuum_ood = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
+    solvent_ood = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
 
     # Vacuum data
 
-    wtd = weight_to_data(vacuum_data)
-    sld = length_dict(wtd)
+    # wtd = weight_to_data(vacuum_data)
+    # sld = length_dict(wtd)
 
-    vac_train_mass = ['152.037'] # EVAN WILL NEED TO ADJUST THE MASSES OF INITIAL POINTS FOR NEW DATA
-    vac_test_mass = ['144.092']
-    vac_val_mass = ['143.108']
+    # vac_train_mass = ['152.037'] # EVAN WILL NEED TO ADJUST THE MASSES OF INITIAL POINTS FOR NEW DATA
+    # vac_test_mass = ['144.092']
+    # vac_val_mass = ['143.108']
 
-    vac_train = sld['152.037'] # trackers for dataset sizes
-    vac_test = sld['144.092']
-    vac_val = sld['143.108']
+    # vac_train = sld['152.037'] # trackers for dataset sizes
+    # vac_test = sld['144.092']
+    # vac_val = sld['143.108']
 
-    sld.pop('152.037')
-    sld.pop('144.092')
-    sld.pop('143.108')
+    # sld.pop('152.037')
+    # sld.pop('144.092')
+    # sld.pop('143.108')
 
-    # Sort the data 
-    # data is a dict: mass-># of trajs
-    for mass in sld:
-        temp_total = vac_train + vac_val + vac_test
-        train_ratio = .65 - (vac_train / temp_total)
-        test_ratio = .25 - (vac_test / temp_total)
-        val_ratio = .1 - (vac_val / temp_total)
+    # # Sort the data 
+    # # data is a dict: mass-># of trajs
+    # for mass in sld:
+    #     temp_total = vac_train + vac_val + vac_test
+    #     train_ratio = .65 - (vac_train / temp_total)
+    #     test_ratio = .25 - (vac_test / temp_total)
+    #     val_ratio = .1 - (vac_val / temp_total)
         
-        if train_ratio > val_ratio and train_ratio > test_ratio:
-            vac_train_mass.append(mass)
-            vac_train += sld[mass]
-        elif val_ratio > train_ratio and val_ratio > test_ratio:
-            vac_val_mass.append(mass)
-            vac_val += sld[mass]
-        else:
-            vac_test_mass.append(mass)
-            vac_test += sld[mass]
+    #     if train_ratio > val_ratio and train_ratio > test_ratio:
+    #         vac_train_mass.append(mass)
+    #         vac_train += sld[mass]
+    #     elif val_ratio > train_ratio and val_ratio > test_ratio:
+    #         vac_val_mass.append(mass)
+    #         vac_val += sld[mass]
+    #     else:
+    #         vac_test_mass.append(mass)
+    #         vac_test += sld[mass]
 
-    sld = length_dict(wtd) # you need to call this again yes
+    # sld = length_dict(wtd) # you need to call this again yes
 
-    vac_switch = [
-        "117.039",
-        "116.204",
-        "116.160",
-        "115.096",
-        "115.095",
-        "112.054",
-        "112.05",
-        "111.148",
-        "102.089",
-        "101.065",
-        "101.061",
-        "100.205",
-        "99.053",
-        "99.049",
-        "98.189",
-        "95.023",
-        "94.117",
-        "85.106",
-        "84.078",
-        "83.046"
-    ]
+    # vac_switch = [
+    #     "117.039",
+    #     "116.204",
+    #     "116.160",
+    #     "115.096",
+    #     "115.095",
+    #     "112.054",
+    #     "112.05",
+    #     "111.148",
+    #     "102.089",
+    #     "101.065",
+    #     "101.061",
+    #     "100.205",
+    #     "99.053",
+    #     "99.049",
+    #     "98.189",
+    #     "95.023",
+    #     "94.117",
+    #     "85.106",
+    #     "84.078",
+    #     "83.046"
+    # ]
 
-    for mass in vac_switch:
-        if mass in vac_test_mass:
-            vac_val_mass.append(mass)
-            vac_val += sld[mass]
+    # for mass in vac_switch:
+    #     if mass in vac_test_mass:
+    #         vac_val_mass.append(mass)
+    #         vac_val += sld[mass]
             
-            vac_test_mass.remove(mass)
-            vac_test -= sld[mass]
+    #         vac_test_mass.remove(mass)
+    #         vac_test -= sld[mass]
 
-    vac_data = {
-        "train": list(),
-        "val": list(),
-        "test": list()
-    }
+    # vac_data = {
+    #     "train": list(),
+    #     "val": list(),
+    #     "test": list()
+    # }
 
-    for split, masses in [("train", vac_train_mass), ("val", vac_val_mass), ("test", vac_test_mass)]:
-        for mass in masses:
-            for mpoint in wtd[mass]:
-                vac_data[split].append(mpoint)
+    # for split, masses in [("train", vac_train_mass), ("val", vac_val_mass), ("test", vac_test_mass)]:
+    #     for mass in masses:
+    #         for mpoint in wtd[mass]:
+    #             vac_data[split].append(mpoint)
 
     # # Minimal build
     # vac_build_minimal = dict()
@@ -927,245 +927,245 @@ if __name__ == "__main__":
     # del wtd_doublet
     # del wtd_neutral
 
-    # Full build
-    vac_build_full = dict()
-    for split in vac_data:
-        vac_build_full[split] = build_atoms_iterator(vac_data[split], forces="precise_gradient")
+    # # Full build
+    # vac_build_full = dict()
+    # for split in vac_data:
+    #     vac_build_full[split] = build_atoms_iterator(vac_data[split], forces="precise_gradient")
         
-    create_dataset(vac_build_full, 'radqm9_65_10_25_sp_vacuum_full_data_20240807', vacuum_full_path)
+    # create_dataset(vac_build_full, 'radqm9_65_10_25_sp_vacuum_full_data_20240807', vacuum_full_path)
 
-    vac_ood_full = build_atoms_iterator(vacuum_ood, forces="precise_gradient")
-    file = os.path.join(vacuum_full_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_ood.xyz')
-    ase.io.write(file, vac_ood_full, format="extxyz")
+    # vac_ood_full = build_atoms_iterator(vacuum_ood, forces="precise_gradient")
+    # file = os.path.join(vacuum_full_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_ood.xyz')
+    # ase.io.write(file, vac_ood_full, format="extxyz")
 
-    # Charge/spin subsets
-    vac_train_cs_dict = {}
-    for item in tqdm(vac_build_full['train']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            vac_train_cs_dict[key].append(item)
-        except KeyError:
-            vac_train_cs_dict[key] = [item]
+    # # Charge/spin subsets
+    # vac_train_cs_dict = {}
+    # for item in tqdm(vac_build_full['train']):
+    #     key = str(item.info['charge']) + "_" + str(item.info['spin'])
+    #     try:
+    #         vac_train_cs_dict[key].append(item)
+    #     except KeyError:
+    #         vac_train_cs_dict[key] = [item]
 
-    vac_val_cs_dict = {}
-    for item in tqdm(vac_build_full['val']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            vac_val_cs_dict[key].append(item)
-        except KeyError:
-            vac_val_cs_dict[key] = [item]
+    # vac_val_cs_dict = {}
+    # for item in tqdm(vac_build_full['val']):
+    #     key = str(item.info['charge']) + "_" + str(item.info['spin'])
+    #     try:
+    #         vac_val_cs_dict[key].append(item)
+    #     except KeyError:
+    #         vac_val_cs_dict[key] = [item]
 
-    vac_test_cs_dict = {}
-    for item in tqdm(vac_build_full['test']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            vac_test_cs_dict[key].append(item)
-        except KeyError:
-            vac_test_cs_dict[key] = [item]
+    # vac_test_cs_dict = {}
+    # for item in tqdm(vac_build_full['test']):
+    #     key = str(item.info['charge']) + "_" + str(item.info['spin'])
+    #     try:
+    #         vac_test_cs_dict[key].append(item)
+    #     except KeyError:
+    #         vac_test_cs_dict[key] = [item]
 
-    vac_ood_cs_dict = {}
-    for item in tqdm(vac_ood_full):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            vac_ood_cs_dict[key].append(item)
-        except KeyError:
-            vac_ood_cs_dict[key] = [item]
+    # vac_ood_cs_dict = {}
+    # for item in tqdm(vac_ood_full):
+    #     key = str(item.info['charge']) + "_" + str(item.info['spin'])
+    #     try:
+    #         vac_ood_cs_dict[key].append(item)
+    #     except KeyError:
+    #         vac_ood_cs_dict[key] = [item]
 
-    # Split by charge/spin pair
-    # Use this for relative energies
-    vacuum_full_chargespin_path = os.path.join(vacuum_full_path, "by_charge_spin")
-    if not os.path.exists(vacuum_full_chargespin_path):
-        os.mkdir(vacuum_full_chargespin_path)
+    # # Split by charge/spin pair
+    # # Use this for relative energies
+    # vacuum_full_chargespin_path = os.path.join(vacuum_full_path, "by_charge_spin")
+    # if not os.path.exists(vacuum_full_chargespin_path):
+    #     os.mkdir(vacuum_full_chargespin_path)
 
-    for key in vac_test_cs_dict:
-        file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_train_'+key+'.xyz')
-        ase.io.write(file, vac_train_cs_dict[key], format="extxyz")
+    # for key in vac_test_cs_dict:
+    #     file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_train_'+key+'.xyz')
+    #     ase.io.write(file, vac_train_cs_dict[key], format="extxyz")
         
-        file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_val_'+key+'.xyz')
-        ase.io.write(file, vac_val_cs_dict[key], format="extxyz")
+    #     file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_val_'+key+'.xyz')
+    #     ase.io.write(file, vac_val_cs_dict[key], format="extxyz")
         
-        file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_test_'+key+'.xyz')
-        ase.io.write(file, vac_test_cs_dict[key], format="extxyz")
+    #     file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_test_'+key+'.xyz')
+    #     ase.io.write(file, vac_test_cs_dict[key], format="extxyz")
 
-        if key in vac_ood_cs_dict:
-            file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_ood_'+key+'.xyz')
-            ase.io.write(file, vac_ood_cs_dict[key], format="extxyz")
+    #     if key in vac_ood_cs_dict:
+    #         file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_ood_'+key+'.xyz')
+    #         ase.io.write(file, vac_ood_cs_dict[key], format="extxyz")
 
-    # Singlet
-    vacuum_full_singlet_path = os.path.join(vacuum_full_path, "singlet")
-    if not os.path.exists(vacuum_full_singlet_path):
-        os.mkdir(vacuum_full_singlet_path)
+    # # Singlet
+    # vacuum_full_singlet_path = os.path.join(vacuum_full_path, "singlet")
+    # if not os.path.exists(vacuum_full_singlet_path):
+    #     os.mkdir(vacuum_full_singlet_path)
 
-    vac_singlet_train = []
-    vac_singlet_val = []
-    vac_singlet_test = []
-    vac_singlet_ood = []
+    # vac_singlet_train = []
+    # vac_singlet_val = []
+    # vac_singlet_test = []
+    # vac_singlet_ood = []
 
-    for item in tqdm(vac_build_full['train']):
-        if item.info['spin'] == 1:
-            vac_singlet_train.append(item)
+    # for item in tqdm(vac_build_full['train']):
+    #     if item.info['spin'] == 1:
+    #         vac_singlet_train.append(item)
 
-    for item in tqdm(vac_build_full['val']):
-        if item.info['spin'] == 1:
-            vac_singlet_val.append(item)
+    # for item in tqdm(vac_build_full['val']):
+    #     if item.info['spin'] == 1:
+    #         vac_singlet_val.append(item)
 
-    for item in tqdm(vac_build_full['test']):
-        if item.info['spin'] == 1:
-            vac_singlet_test.append(item)
+    # for item in tqdm(vac_build_full['test']):
+    #     if item.info['spin'] == 1:
+    #         vac_singlet_test.append(item)
 
-    for item in tqdm(vac_ood_full):
-        if item.info['spin'] == 1:
-            vac_singlet_ood.append(item)
+    # for item in tqdm(vac_ood_full):
+    #     if item.info['spin'] == 1:
+    #         vac_singlet_ood.append(item)
 
-    file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_train.xyz')
-    ase.io.write(file, vac_singlet_train, format="extxyz")
+    # file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_train.xyz')
+    # ase.io.write(file, vac_singlet_train, format="extxyz")
     
-    file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_val.xyz')
-    ase.io.write(file, vac_singlet_val, format="extxyz")
+    # file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_val.xyz')
+    # ase.io.write(file, vac_singlet_val, format="extxyz")
     
-    file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_test.xyz')
-    ase.io.write(file, vac_singlet_test, format="extxyz")
+    # file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_test.xyz')
+    # ase.io.write(file, vac_singlet_test, format="extxyz")
 
-    file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_ood.xyz')
-    ase.io.write(file, vac_singlet_ood, format="extxyz")
+    # file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_ood.xyz')
+    # ase.io.write(file, vac_singlet_ood, format="extxyz")
 
-    # Doublet
-    vacuum_full_doublet_path = os.path.join(vacuum_full_path, "doublet")
-    if not os.path.exists(vacuum_full_doublet_path):
-        os.mkdir(vacuum_full_doublet_path)
+    # # Doublet
+    # vacuum_full_doublet_path = os.path.join(vacuum_full_path, "doublet")
+    # if not os.path.exists(vacuum_full_doublet_path):
+    #     os.mkdir(vacuum_full_doublet_path)
 
-    vac_doublet_train = []
-    vac_doublet_val = []
-    vac_doublet_test = []
-    vac_doublet_ood = []
+    # vac_doublet_train = []
+    # vac_doublet_val = []
+    # vac_doublet_test = []
+    # vac_doublet_ood = []
 
-    for item in tqdm(vac_build_full['train']):
-        if item.info['spin'] == 2:
-            vac_doublet_train.append(item)
+    # for item in tqdm(vac_build_full['train']):
+    #     if item.info['spin'] == 2:
+    #         vac_doublet_train.append(item)
 
-    for item in tqdm(vac_build_full['val']):
-        if item.info['spin'] == 2:
-            vac_doublet_val.append(item)
+    # for item in tqdm(vac_build_full['val']):
+    #     if item.info['spin'] == 2:
+    #         vac_doublet_val.append(item)
 
-    for item in tqdm(vac_build_full['test']):
-        if item.info['spin'] == 2:
-            vac_doublet_test.append(item)
+    # for item in tqdm(vac_build_full['test']):
+    #     if item.info['spin'] == 2:
+    #         vac_doublet_test.append(item)
 
-    for item in tqdm(vac_ood_full):
-        if item.info['spin'] == 2:
-            vac_doublet_ood.append(item)
+    # for item in tqdm(vac_ood_full):
+    #     if item.info['spin'] == 2:
+    #         vac_doublet_ood.append(item)
 
-    file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_train.xyz')
-    ase.io.write(file, vac_doublet_train, format="extxyz")
+    # file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_train.xyz')
+    # ase.io.write(file, vac_doublet_train, format="extxyz")
     
-    file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_val.xyz')
-    ase.io.write(file, vac_doublet_val, format="extxyz")
+    # file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_val.xyz')
+    # ase.io.write(file, vac_doublet_val, format="extxyz")
     
-    file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_test.xyz')
-    ase.io.write(file, vac_doublet_test, format="extxyz")
+    # file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_test.xyz')
+    # ase.io.write(file, vac_doublet_test, format="extxyz")
 
-    file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_ood.xyz')
-    ase.io.write(file, vac_doublet_ood, format="extxyz")
+    # file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_ood.xyz')
+    # ase.io.write(file, vac_doublet_ood, format="extxyz")
 
 
-    # Neutral
-    vacuum_full_neutral_path = os.path.join(vacuum_minimal_path, "neutral")
-    if not os.path.exists(vacuum_full_neutral_path):
-        os.mkdir(vacuum_full_neutral_path)
+    # # Neutral
+    # vacuum_full_neutral_path = os.path.join(vacuum_minimal_path, "neutral")
+    # if not os.path.exists(vacuum_full_neutral_path):
+    #     os.mkdir(vacuum_full_neutral_path)
 
-    vac_neutral_train = []
-    vac_neutral_val = []
-    vac_neutral_test = []
-    vac_neutral_ood = []
+    # vac_neutral_train = []
+    # vac_neutral_val = []
+    # vac_neutral_test = []
+    # vac_neutral_ood = []
 
-    for item in tqdm(vac_build_full['train']):
-        if item.info['charge'] == 0:
-            vac_neutral_train.append(item)
+    # for item in tqdm(vac_build_full['train']):
+    #     if item.info['charge'] == 0:
+    #         vac_neutral_train.append(item)
 
-    for item in tqdm(vac_build_full['val']):
-        if item.info['charge'] == 0:
-            vac_neutral_val.append(item)
+    # for item in tqdm(vac_build_full['val']):
+    #     if item.info['charge'] == 0:
+    #         vac_neutral_val.append(item)
 
-    for item in tqdm(vac_build_full['test']):
-        if item.info['charge'] == 0:
-            vac_neutral_test.append(item)
+    # for item in tqdm(vac_build_full['test']):
+    #     if item.info['charge'] == 0:
+    #         vac_neutral_test.append(item)
 
-    for item in tqdm(vac_ood_full):
-        if item.info['charge'] == 0:
-            vac_neutral_ood.append(item)
+    # for item in tqdm(vac_ood_full):
+    #     if item.info['charge'] == 0:
+    #         vac_neutral_ood.append(item)
 
-    file = os.path.join(vacuum_full_neutral_path,'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_train.xyz')
-    ase.io.write(file, vac_neutral_train, format="extxyz")
+    # file = os.path.join(vacuum_full_neutral_path,'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_train.xyz')
+    # ase.io.write(file, vac_neutral_train, format="extxyz")
     
-    file = os.path.join(vacuum_full_neutral_path,'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_val.xyz')
-    ase.io.write(file, vac_neutral_val, format="extxyz")
+    # file = os.path.join(vacuum_full_neutral_path,'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_val.xyz')
+    # ase.io.write(file, vac_neutral_val, format="extxyz")
     
-    file = os.path.join(vacuum_full_neutral_path,'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_test.xyz')
-    ase.io.write(file, vac_neutral_test, format="extxyz")
+    # file = os.path.join(vacuum_full_neutral_path,'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_test.xyz')
+    # ase.io.write(file, vac_neutral_test, format="extxyz")
 
-    file = os.path.join(vacuum_full_neutral_path,'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_ood.xyz')
-    ase.io.write(file, vac_neutral_ood, format="extxyz")
+    # file = os.path.join(vacuum_full_neutral_path,'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_ood.xyz')
+    # ase.io.write(file, vac_neutral_ood, format="extxyz")
 
-    fractions = [.01, .05, .1, .25, .5, .75]
+    # fractions = [.01, .05, .1, .25, .5, .75]
 
-    wtd_full = weight_to_data_ase(vac_build_full["train"])
-    cd_full = chunk_data(wtd_full, fractions)
+    # wtd_full = weight_to_data_ase(vac_build_full["train"])
+    # cd_full = chunk_data(wtd_full, fractions)
     
-    wtd_cs = dict()
-    cd_cs = dict()
-    for key in vac_train_cs_dict:
-        wtd_cs[key] = weight_to_data_ase(vac_train_cs_dict[key])
-        cd_cs[key] = chunk_data(wtd_cs[key], fractions)
+    # wtd_cs = dict()
+    # cd_cs = dict()
+    # for key in vac_train_cs_dict:
+    #     wtd_cs[key] = weight_to_data_ase(vac_train_cs_dict[key])
+    #     cd_cs[key] = chunk_data(wtd_cs[key], fractions)
 
-    wtd_singlet = weight_to_data_ase(vac_singlet_train)
-    cd_singlet = chunk_data(wtd_singlet, fractions)
+    # wtd_singlet = weight_to_data_ase(vac_singlet_train)
+    # cd_singlet = chunk_data(wtd_singlet, fractions)
 
-    wtd_doublet = weight_to_data_ase(vac_doublet_train)
-    cd_doublet = chunk_data(wtd_doublet, fractions)
+    # wtd_doublet = weight_to_data_ase(vac_doublet_train)
+    # cd_doublet = chunk_data(wtd_doublet, fractions)
 
-    wtd_neutral = weight_to_data_ase(vac_neutral_train)
-    cd_neutral = chunk_data(wtd_neutral, fractions)
+    # wtd_neutral = weight_to_data_ase(vac_neutral_train)
+    # cd_neutral = chunk_data(wtd_neutral, fractions)
 
-    for ii, frac in enumerate(fractions):
-        chunk_file = os.path.join(vacuum_full_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_full[ii], format="extxyz")
+    # for ii, frac in enumerate(fractions):
+    #     chunk_file = os.path.join(vacuum_full_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_train_subset_' + f'{frac}.xyz')
+    #     ase.io.write(chunk_file, cd_full[ii], format="extxyz")
         
-        for key in cd_cs:
-            chunk_file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_train_subset_' + key + f'_{frac}.xyz')
-            ase.io.write(chunk_file, cd_cs[key][ii], format="extxyz")
+    #     for key in cd_cs:
+    #         chunk_file = os.path.join(vacuum_full_chargespin_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_train_subset_' + key + f'_{frac}.xyz')
+    #         ase.io.write(chunk_file, cd_cs[key][ii], format="extxyz")
 
-        chunk_file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_singlet[ii],format="extxyz")
+    #     chunk_file = os.path.join(vacuum_full_singlet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_singlet_train_subset_' + f'{frac}.xyz')
+    #     ase.io.write(chunk_file, cd_singlet[ii],format="extxyz")
 
-        chunk_file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_doublet[ii],format="extxyz")
+    #     chunk_file = os.path.join(vacuum_full_doublet_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_doublet_train_subset_' + f'{frac}.xyz')
+    #     ase.io.write(chunk_file, cd_doublet[ii],format="extxyz")
         
-        chunk_file = os.path.join(vacuum_full_neutral_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")
+    #     chunk_file = os.path.join(vacuum_full_neutral_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
+    #     ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")
 
-    # Cleanup for memory
-    del vac_build_full
-    del vac_ood_full
-    del vac_train_cs_dict
-    del vac_val_cs_dict
-    del vac_test_cs_dict
-    del vac_ood_cs_dict
-    del vac_singlet_train
-    del vac_singlet_val
-    del vac_singlet_test
-    del vac_singlet_ood
-    del vac_doublet_train
-    del vac_doublet_val
-    del vac_doublet_test
-    del vac_doublet_ood
-    del vac_neutral_train
-    del vac_neutral_val
-    del vac_neutral_test
-    del vac_neutral_ood
-    del wtd_full
-    del wtd_cs
-    del wtd_doublet
-    del wtd_neutral
+    # # Cleanup for memory
+    # del vac_build_full
+    # del vac_ood_full
+    # del vac_train_cs_dict
+    # del vac_val_cs_dict
+    # del vac_test_cs_dict
+    # del vac_ood_cs_dict
+    # del vac_singlet_train
+    # del vac_singlet_val
+    # del vac_singlet_test
+    # del vac_singlet_ood
+    # del vac_doublet_train
+    # del vac_doublet_val
+    # del vac_doublet_test
+    # del vac_doublet_ood
+    # del vac_neutral_train
+    # del vac_neutral_val
+    # del vac_neutral_test
+    # del vac_neutral_ood
+    # del wtd_full
+    # del wtd_cs
+    # del wtd_doublet
+    # del wtd_neutral
 
     # SMD data
 
@@ -1256,7 +1256,7 @@ if __name__ == "__main__":
         
     create_dataset(smd_build_minimal, 'radqm9_65_10_25_sp_smd_minimal_data_20240807', smd_minimal_path)
 
-    smd_ood_minimal = build_minimal_atoms_iterator(smd_ood, forces="precise_gradient")
+    smd_ood_minimal = build_minimal_atoms_iterator(solvent_ood, forces="precise_gradient")
     file = os.path.join(smd_minimal_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_ood.xyz')
     ase.io.write(file, smd_ood_minimal, format="extxyz")
 
@@ -1496,7 +1496,7 @@ if __name__ == "__main__":
         
     create_dataset(smd_build_full, 'radqm9_65_10_25_sp_smd_full_data_20240807', smd_full_path)
 
-    smd_ood_full = build_atoms_iterator(smd_ood, forces="precise_gradient")
+    smd_ood_full = build_atoms_iterator(solvent_ood, forces="precise_gradient")
     file = os.path.join(smd_full_path, 'radqm9_65_10_25_sp_smd_full_data_20240807_ood.xyz')
     ase.io.write(file, smd_ood_full, format="extxyz")
 
