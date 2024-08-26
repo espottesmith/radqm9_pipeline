@@ -110,7 +110,7 @@ def main():
             all_atomic_energies[charge_spin] = atomic_energies_dict
 
         for xyz_path in get_all_xyz_files(path):
-            atoms_dataset = ase.io.read(xyz_path, format="extxyz")
+            atoms_dataset = ase.io.read(xyz_path, index=":")
 
             relative_energies(atoms_dataset, all_atomic_energies)
 

@@ -32,6 +32,10 @@ from mace.tools import torch_geometric
 from mace.modules import compute_statistics    
 
 
+# Note: in trajectory data, dipole moment keys are "dipole_moments", "resp_dipole_moments", and "calc_resp_dipole_moments"
+# In sp data, they are "dipole_moment", "resp_dipole_moment", and "calc_resp_dipole_moment". Whoops...
+
+
 @dataclass
 class ExpandedConfiguration:
     atomic_numbers: np.ndarray
@@ -82,8 +86,8 @@ def expanded_config_from_atoms_list(
     forces_key="forces",
     stress_key="stress",
     virials_key="virials",
-    dipole_key="dipole",
-    charges_key="charges",
+    dipole_key="dipole_moments",
+    charges_key="mulliken_partial_charges",
     total_charge_key="charge",
     spin_key="spin",
     config_type_weights: Dict[str, float] = None,
@@ -95,7 +99,7 @@ def expanded_config_from_atoms_list(
     all_configs = []
     for atoms in atoms_list:
         all_configs.append(
-            config_from_atoms(
+            expanded_config_from_atoms(
                 atoms,
                 energy_key=energy_key,
                 forces_key=forces_key,
@@ -196,41 +200,18 @@ def load_from_xyz_expanded(
     forces_key: str = "forces",
     stress_key: str = "stress",
     virials_key: str = "virials",
-    dipole_key: str = "dipole",
-    charges_key: str = "charges",
+    dipole_key: str = "dipole_moments",
+    charges_key: str = "mulliken_partial_charges",
     total_charge_key: str = "charge",
     spin_key: str = "spin",
-    extract_atomic_energies: bool = False,
-) -> Tuple[Dict[int, float], Configurations]:
+) -> Tuple[Dict[int, float], ExpandedConfigurations]:
+
     atoms_list = ase.io.read(file_path, index=":")
 
     if not isinstance(atoms_list, list):
         atoms_list = [atoms_list]
 
-    atomic_energies_dict = {}
-    if extract_atomic_energies:
-        atoms_without_iso_atoms = []
-
-        for idx, atoms in enumerate(atoms_list):
-            if len(atoms) == 1 and atoms.info["config_type"] == "IsolatedAtom":
-                if energy_key in atoms.info.keys():
-                    atomic_energies_dict[atoms.get_atomic_numbers()[0]] = atoms.info[
-                        energy_key
-                    ]
-                else:
-                    logging.warning(
-                        f"Configuration '{idx}' is marked as 'IsolatedAtom' "
-                        "but does not contain an energy."
-                    )
-            else:
-                atoms_without_iso_atoms.append(atoms)
-
-        if len(atomic_energies_dict) > 0:
-            logging.info("Using isolated atom energies from training file")
-
-        atoms_list = atoms_without_iso_atoms
-
-    configs = config_from_atoms_list(
+    configs = expanded_config_from_atoms_list(
         atoms_list,
         config_type_weights=config_type_weights,
         energy_key=energy_key,
@@ -242,7 +223,8 @@ def load_from_xyz_expanded(
         total_charge_key=total_charge_key,
         spin_key=spin_key,
     )
-    return atomic_energies_dict, configs
+
+    return configs
 
 
 def get_expanded_dataset_from_xyz(
@@ -261,8 +243,10 @@ def get_expanded_dataset_from_xyz(
     total_charge_key: str = "charge",
     spin_key: str = "spin",
 ) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
-    """Load training and test dataset from xyz file"""
-    atomic_energies_dict, all_train_configs = data.load_from_xyz_expanded(
+    
+    """Load training, validation, and test datasets from xyz files"""
+
+    all_train_configs = load_from_xyz_expanded(
         file_path=train_path,
         config_type_weights=config_type_weights,
         energy_key=energy_key,
@@ -273,13 +257,12 @@ def get_expanded_dataset_from_xyz(
         charges_key=charges_key,
         total_charge_key=total_charge_key,
         spin_key=spin_key,
-        extract_atomic_energies=True,
     )
     logging.info(
         f"Loaded {len(all_train_configs)} training configurations from '{train_path}'"
     )
     if valid_path is not None:
-        _, valid_configs = data.load_from_xyz_expanded(
+        valid_configs = load_from_xyz_expanded(
             file_path=valid_path,
             config_type_weights=config_type_weights,
             energy_key=energy_key,
@@ -290,7 +273,6 @@ def get_expanded_dataset_from_xyz(
             charges_key=charges_key,
             total_charge_key=total_charge_key,
             spin_key=spin_key,
-            extract_atomic_energies=False,
         )
         logging.info(
             f"Loaded {len(valid_configs)} validation configurations from '{valid_path}'"
@@ -306,7 +288,7 @@ def get_expanded_dataset_from_xyz(
 
     test_configs = []
     if test_path is not None:
-        _, all_test_configs = data.load_from_xyz_expanded(
+        all_test_configs = load_from_xyz_expanded(
             file_path=test_path,
             config_type_weights=config_type_weights,
             energy_key=energy_key,
@@ -315,17 +297,14 @@ def get_expanded_dataset_from_xyz(
             charges_key=charges_key,
             total_charge_key=total_charge_key,
             spin_key=spin_key,
-            extract_atomic_energies=False,
         )
         # create list of tuples (config_type, list(Atoms))
         test_configs = data.test_config_types(all_test_configs)
         logging.info(
             f"Loaded {len(all_test_configs)} test configurations from '{test_path}'"
         )
-    return (
-        SubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs),
-        atomic_energies_dict,
-    )
+    
+    return ExpandedSubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs)
 
 
 def compute_stats_target(file: str, z_table: AtomicNumberTable, r_max: float, atomic_energies: Tuple, batch_size: int):
