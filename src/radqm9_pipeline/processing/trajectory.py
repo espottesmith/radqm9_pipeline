@@ -20,67 +20,6 @@ from radqm9_pipeline.elements import read_elements
 from maggma.stores.mongolike import MongoStore
 
 
-# def filter_features(data: list):
-#     dataset = []
-#     for item in tqdm(data):
-#         formatted_data={}
-#         formatted_data['mol_id'] = item['molecule_id']
-#         formatted_data['species'] = item['species']
-#         formatted_data['charge'] = item['charge'] 
-#         formatted_data['spin'] = item['spin_multiplicity']
-#         formatted_data['geometries'] = item['geometries']
-#         formatted_data['energy'] = item['energies']
-#         formatted_data['gradients'] = item['forces']
-#         formatted_data['mulliken_partial_charges'] = item['mulliken_partial_charges']
-#         formatted_data['mulliken_partial_spins'] = item['mulliken_partial_spins']
-#         formatted_data['resp_partial_charges'] = item['resp_partial_charges']
-#         formatted_data['dipole_moments'] = item['dipole_moments']
-#         formatted_data['resp_dipole_moments'] = item['resp_dipole_moments']
-#         dataset.append(formatted_data)
-#     return dataset
-
-
-# def resolve_trajectories(data: list):
-#     resolved_data = []
-#     unequal_data = []
-#     bad_data = []
-#     non_spin_broken = []
-#     for item in tqdm(data):
-#         try:
-#             feat = [len(item['geometries']), len(item['gradients']), len(item['energy'])]
-
-#             feat_set = set(feat)
-#             if len(feat_set) !=1 :
-#                 unequal_data.append([item, feat])
-#             else:
-#                 len_geo = len(item['geometries'])
-#                 if len_geo==1:
-#                     resolved_data.append(item)
-#                 elif len_geo > 1:
-#                     item['geometries'] = list(itertools.chain.from_iterable(item['geometries']))
-#                     item['gradients'] = list(itertools.chain.from_iterable(item['gradients']))
-#                     item['energy'] = list(itertools.chain.from_iterable(item['energy']))
-#                     item['mulliken_partial_charges'] = list(itertools.chain.from_iterable(item['mulliken_partial_charges']))
-#                     item['resp_partial_charges'] = list(itertools.chain.from_iterable(item['resp_partial_charges']))
-               
-#                     try:
-#                         item['mulliken_partial_spins'] = list(itertools.chain.from_iterable(item['mulliken_partial_spins']))
-#                     except TypeError:
-#                         # We will resolve weird spin data later in the pipeline
-#                         pass
-
-#                     item['dipole_moments'] = list(itertools.chain.from_iterable(item['dipole_moments']))
-#                     item['resp_dipole_moments'] = list(itertools.chain.from_iterable(item['resp_dipole_moments']))
-
-#                     resolved_data.append(item)
-#                 else:
-#                     bad_data.append(item)
-#         except TypeError:
-#             non_spin_broken.append(item)
-        
-#     return resolved_data, unequal_data, bad_data, non_spin_broken
-
-
 def add_unique_id(data: list):
     for item in tqdm(data):
         item['charge_spin'] = str(item['charge']) + "_" + str(item['spin'])

@@ -3,7 +3,7 @@
 
 import logging
 import numpy as np
-import tqdm
+from tqdm import tqdm
 import os
 
 import ase

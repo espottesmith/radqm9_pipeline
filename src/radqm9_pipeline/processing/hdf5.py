@@ -16,6 +16,14 @@ from typing import List, Tuple
 
 from mace import tools, data
 from mace.data.utils import (
+    Vector,
+    Positions,
+    Forces,
+    Stress,
+    Virials,
+    Charges,
+    Cell,
+    Pbc,
     save_configurations_as_HDF5,
 )
 from mace.tools.scripts_utils import get_dataset_from_xyz, get_atomic_energies
@@ -25,15 +33,26 @@ from mace.modules import compute_statistics
 
 
 @dataclass
-class Configuration:
+class ExpandedConfiguration:
     atomic_numbers: np.ndarray
     positions: Positions  # Angstrom
     energy: Optional[float] = None  # eV
     forces: Optional[Forces] = None  # eV/Angstrom
     stress: Optional[Stress] = None  # eV/Angstrom^3
     virials: Optional[Virials] = None  # eV
-    dipole: Optional[Vector] = None  # Debye
+
+    # TODO: do we want this? And if we do, what kind of charges go here?
     charges: Optional[Charges] = None  # atomic unit
+    mulliken_partial_charges: Optional[Charges] = None  # atomic unit
+    mulliken_partial_spins: Optional[Charges] = None  # atomic unit
+    resp_partial_charges: Optional[Charges] = None  # atomic unit
+    nbo_partial_charges: Optional[Charges] = None  # atomic unit
+    nbo_partial_spins: Optional[Charges] = None  # atomic unit
+
+    dipole: Optional[Vector] = None  # Debye
+    resp_dipole: Optional[Vector] = None  # Debye
+    calc_resp_dipole: Optiona[Vector] = None  # Debye
+
     total_charge: Optional[int] = None # molecular charge
     spin: Optional[int] = None # molecular spin
     cell: Optional[Cell] = None
@@ -44,13 +63,20 @@ class Configuration:
     forces_weight: float = 1.0  # weight of config forces in loss
     stress_weight: float = 1.0  # weight of config stress in loss
     virials_weight: float = 1.0  # weight of config virial in loss
-    config_type: Optional[str] = DEFAULT_CONFIG_TYPE  # config_type of config
+    config_type: Optional[str] = "Default"  # config_type of config
 
 
-Configurations = List[Configuration]
+ExpandedConfigurations = List[ExpandedConfiguration]
 
 
-def config_from_atoms_list(
+@dataclasses.dataclass
+class ExpandedSubsetCollection:
+    train: ExpandedConfigurations
+    valid: ExpandedConfigurations
+    tests: List[Tuple[str, ExpandedConfigurations]]
+
+
+def expanded_config_from_atoms_list(
     atoms_list: List[ase.Atoms],
     energy_key="energy",
     forces_key="forces",
@@ -85,7 +111,7 @@ def config_from_atoms_list(
     return all_configs
 
 
-def config_from_atoms(
+def expanded_config_from_atoms(
     atoms: ase.Atoms,
     energy_key="energy",
     forces_key="forces",
@@ -163,7 +189,7 @@ def config_from_atoms(
     )
 
 
-def load_from_xyz(
+def load_from_xyz_expanded(
     file_path: str,
     config_type_weights: Dict,
     energy_key: str = "energy",
@@ -219,24 +245,24 @@ def load_from_xyz(
     return atomic_energies_dict, configs
 
 
-def get_dataset_from_xyz(
+def get_expanded_dataset_from_xyz(
     train_path: str,
     valid_path: str,
     valid_fraction: float,
     config_type_weights: Dict,
-    test_path: str = None,
+    test_path: Optional[str] = None,
     seed: int = 1234,
     energy_key: str = "energy",
     forces_key: str = "forces",
     stress_key: str = "stress",
     virials_key: str = "virials",
-    dipole_key: str = "dipoles",
-    charges_key: str = "charges",
+    dipole_key: str = "dipole_moments",
+    charges_key: str = "mulliken_partial_charges",
     total_charge_key: str = "charge",
     spin_key: str = "spin",
 ) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
     """Load training and test dataset from xyz file"""
-    atomic_energies_dict, all_train_configs = data.load_from_xyz(
+    atomic_energies_dict, all_train_configs = data.load_from_xyz_expanded(
         file_path=train_path,
         config_type_weights=config_type_weights,
         energy_key=energy_key,
@@ -253,7 +279,7 @@ def get_dataset_from_xyz(
         f"Loaded {len(all_train_configs)} training configurations from '{train_path}'"
     )
     if valid_path is not None:
-        _, valid_configs = data.load_from_xyz(
+        _, valid_configs = data.load_from_xyz_expanded(
             file_path=valid_path,
             config_type_weights=config_type_weights,
             energy_key=energy_key,
@@ -280,7 +306,7 @@ def get_dataset_from_xyz(
 
     test_configs = []
     if test_path is not None:
-        _, all_test_configs = data.load_from_xyz(
+        _, all_test_configs = data.load_from_xyz_expanded(
             file_path=test_path,
             config_type_weights=config_type_weights,
             energy_key=energy_key,
@@ -382,6 +408,22 @@ def main():
      
     # Data preparation
     collections, atomic_energies_dict = get_dataset_from_xyz(
+        train_path=args.train_file,
+        valid_path=args.valid_file,
+        valid_fraction=args.valid_fraction,
+        config_type_weights=config_type_weights,
+        test_path=args.test_file,
+        seed=args.seed,
+        energy_key=args.energy_key,
+        forces_key=args.forces_key,
+        stress_key=args.stress_key,
+        virials_key=args.virials_key,
+        dipole_key=args.dipole_key,
+        charges_key=args.charges_key,
+    )
+
+    # Expanded collections - including extra (non-essential) properties
+    exp_collections, exp_atomic_energies_dict = get_expanded_dataset_from_xyz(
         train_path=args.train_file,
         valid_path=args.valid_file,
         valid_fraction=args.valid_fraction,
