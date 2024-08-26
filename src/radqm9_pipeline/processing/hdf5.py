@@ -24,6 +24,284 @@ from mace.tools import torch_geometric
 from mace.modules import compute_statistics    
 
 
+@dataclass
+class Configuration:
+    atomic_numbers: np.ndarray
+    positions: Positions  # Angstrom
+    energy: Optional[float] = None  # eV
+    forces: Optional[Forces] = None  # eV/Angstrom
+    stress: Optional[Stress] = None  # eV/Angstrom^3
+    virials: Optional[Virials] = None  # eV
+    dipole: Optional[Vector] = None  # Debye
+    charges: Optional[Charges] = None  # atomic unit
+    total_charge: Optional[int] = None # molecular charge
+    spin: Optional[int] = None # molecular spin
+    cell: Optional[Cell] = None
+    pbc: Optional[Pbc] = None
+
+    weight: float = 1.0  # weight of config in loss
+    energy_weight: float = 1.0  # weight of config energy in loss
+    forces_weight: float = 1.0  # weight of config forces in loss
+    stress_weight: float = 1.0  # weight of config stress in loss
+    virials_weight: float = 1.0  # weight of config virial in loss
+    config_type: Optional[str] = DEFAULT_CONFIG_TYPE  # config_type of config
+
+
+Configurations = List[Configuration]
+
+
+def config_from_atoms_list(
+    atoms_list: List[ase.Atoms],
+    energy_key="energy",
+    forces_key="forces",
+    stress_key="stress",
+    virials_key="virials",
+    dipole_key="dipole",
+    charges_key="charges",
+    total_charge_key="charge",
+    spin_key="spin",
+    config_type_weights: Dict[str, float] = None,
+) -> Configurations:
+    """Convert list of ase.Atoms into Configurations"""
+    if config_type_weights is None:
+        config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
+
+    all_configs = []
+    for atoms in atoms_list:
+        all_configs.append(
+            config_from_atoms(
+                atoms,
+                energy_key=energy_key,
+                forces_key=forces_key,
+                stress_key=stress_key,
+                virials_key=virials_key,
+                dipole_key=dipole_key,
+                charges_key=charges_key,
+                total_charge_key=total_charge_key,
+                spin_key=spin_key,
+                config_type_weights=config_type_weights,
+            )
+        )
+    return all_configs
+
+
+def config_from_atoms(
+    atoms: ase.Atoms,
+    energy_key="energy",
+    forces_key="forces",
+    stress_key="stress",
+    virials_key="virials",
+    dipole_key="dipole",
+    charges_key="charges",
+    total_charge_key="charge",
+    spin_key="spin",
+    config_type_weights: Dict[str, float] = None,
+) -> Configuration:
+    """Convert ase.Atoms to Configuration"""
+    if config_type_weights is None:
+        config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
+
+    energy = atoms.info.get(energy_key, None)  # eV
+    forces = atoms.arrays.get(forces_key, None)  # eV / Ang
+    stress = atoms.info.get(stress_key, None)  # eV / Ang
+    virials = atoms.info.get(virials_key, None)
+    dipole = atoms.info.get(dipole_key, None)  # Debye
+    # Charges default to 0 instead of None if not found
+    charges = atoms.arrays.get(charges_key, np.zeros(len(atoms)))  # atomic unit
+    total_charge = atoms.info.get(total_charge_key, 0)
+    spin = atoms.info.get(spin_key, 0)
+    atomic_numbers = np.array(
+        [ase.data.atomic_numbers[symbol] for symbol in atoms.symbols]
+    )
+    pbc = tuple(atoms.get_pbc())
+    cell = np.array(atoms.get_cell())
+    config_type = atoms.info.get("config_type", "Default")
+    weight = atoms.info.get("config_weight", 1.0) * config_type_weights.get(
+        config_type, 1.0
+    )
+    energy_weight = atoms.info.get("config_energy_weight", 1.0)
+    forces_weight = atoms.info.get("config_forces_weight", 1.0)
+    stress_weight = atoms.info.get("config_stress_weight", 1.0)
+    virials_weight = atoms.info.get("config_virials_weight", 1.0)
+
+    # fill in missing quantities but set their weight to 0.0
+    if energy is None:
+        energy = 0.0
+        energy_weight = 0.0
+    if forces is None:
+        forces = np.zeros(np.shape(atoms.positions))
+        forces_weight = 0.0
+    if stress is None:
+        stress = np.zeros(6)
+        stress_weight = 0.0
+    if virials is None:
+        virials = np.zeros((3, 3))
+        virials_weight = 0.0
+    if dipole is None:
+        dipole = np.zeros(3)
+        # dipoles_weight = 0.0
+
+    return Configuration(
+        atomic_numbers=atomic_numbers,
+        positions=atoms.get_positions(),
+        energy=energy,
+        forces=forces,
+        stress=stress,
+        virials=virials,
+        dipole=dipole,
+        charges=charges,
+        total_charge=total_charge,
+        spin=spin,
+        weight=weight,
+        energy_weight=energy_weight,
+        forces_weight=forces_weight,
+        stress_weight=stress_weight,
+        virials_weight=virials_weight,
+        config_type=config_type,
+        pbc=pbc,
+        cell=cell,
+    )
+
+
+def load_from_xyz(
+    file_path: str,
+    config_type_weights: Dict,
+    energy_key: str = "energy",
+    forces_key: str = "forces",
+    stress_key: str = "stress",
+    virials_key: str = "virials",
+    dipole_key: str = "dipole",
+    charges_key: str = "charges",
+    total_charge_key: str = "charge",
+    spin_key: str = "spin",
+    extract_atomic_energies: bool = False,
+) -> Tuple[Dict[int, float], Configurations]:
+    atoms_list = ase.io.read(file_path, index=":")
+
+    if not isinstance(atoms_list, list):
+        atoms_list = [atoms_list]
+
+    atomic_energies_dict = {}
+    if extract_atomic_energies:
+        atoms_without_iso_atoms = []
+
+        for idx, atoms in enumerate(atoms_list):
+            if len(atoms) == 1 and atoms.info["config_type"] == "IsolatedAtom":
+                if energy_key in atoms.info.keys():
+                    atomic_energies_dict[atoms.get_atomic_numbers()[0]] = atoms.info[
+                        energy_key
+                    ]
+                else:
+                    logging.warning(
+                        f"Configuration '{idx}' is marked as 'IsolatedAtom' "
+                        "but does not contain an energy."
+                    )
+            else:
+                atoms_without_iso_atoms.append(atoms)
+
+        if len(atomic_energies_dict) > 0:
+            logging.info("Using isolated atom energies from training file")
+
+        atoms_list = atoms_without_iso_atoms
+
+    configs = config_from_atoms_list(
+        atoms_list,
+        config_type_weights=config_type_weights,
+        energy_key=energy_key,
+        forces_key=forces_key,
+        stress_key=stress_key,
+        virials_key=virials_key,
+        dipole_key=dipole_key,
+        charges_key=charges_key,
+        total_charge_key=total_charge_key,
+        spin_key=spin_key,
+    )
+    return atomic_energies_dict, configs
+
+
+def get_dataset_from_xyz(
+    train_path: str,
+    valid_path: str,
+    valid_fraction: float,
+    config_type_weights: Dict,
+    test_path: str = None,
+    seed: int = 1234,
+    energy_key: str = "energy",
+    forces_key: str = "forces",
+    stress_key: str = "stress",
+    virials_key: str = "virials",
+    dipole_key: str = "dipoles",
+    charges_key: str = "charges",
+    total_charge_key: str = "charge",
+    spin_key: str = "spin",
+) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
+    """Load training and test dataset from xyz file"""
+    atomic_energies_dict, all_train_configs = data.load_from_xyz(
+        file_path=train_path,
+        config_type_weights=config_type_weights,
+        energy_key=energy_key,
+        forces_key=forces_key,
+        stress_key=stress_key,
+        virials_key=virials_key,
+        dipole_key=dipole_key,
+        charges_key=charges_key,
+        total_charge_key=total_charge_key,
+        spin_key=spin_key,
+        extract_atomic_energies=True,
+    )
+    logging.info(
+        f"Loaded {len(all_train_configs)} training configurations from '{train_path}'"
+    )
+    if valid_path is not None:
+        _, valid_configs = data.load_from_xyz(
+            file_path=valid_path,
+            config_type_weights=config_type_weights,
+            energy_key=energy_key,
+            forces_key=forces_key,
+            stress_key=stress_key,
+            virials_key=virials_key,
+            dipole_key=dipole_key,
+            charges_key=charges_key,
+            total_charge_key=total_charge_key,
+            spin_key=spin_key,
+            extract_atomic_energies=False,
+        )
+        logging.info(
+            f"Loaded {len(valid_configs)} validation configurations from '{valid_path}'"
+        )
+        train_configs = all_train_configs
+    else:
+        logging.info(
+            "Using random %s%% of training set for validation", 100 * valid_fraction
+        )
+        train_configs, valid_configs = data.random_train_valid_split(
+            all_train_configs, valid_fraction, seed
+        )
+
+    test_configs = []
+    if test_path is not None:
+        _, all_test_configs = data.load_from_xyz(
+            file_path=test_path,
+            config_type_weights=config_type_weights,
+            energy_key=energy_key,
+            forces_key=forces_key,
+            dipole_key=dipole_key,
+            charges_key=charges_key,
+            total_charge_key=total_charge_key,
+            spin_key=spin_key,
+            extract_atomic_energies=False,
+        )
+        # create list of tuples (config_type, list(Atoms))
+        test_configs = data.test_config_types(all_test_configs)
+        logging.info(
+            f"Loaded {len(all_test_configs)} test configurations from '{test_path}'"
+        )
+    return (
+        SubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs),
+        atomic_energies_dict,
+    )
+
+
 def compute_stats_target(file: str, z_table: AtomicNumberTable, r_max: float, atomic_energies: Tuple, batch_size: int):
     train_dataset = data.HDF5Dataset(file, z_table=z_table, r_max=r_max)
     train_loader = torch_geometric.dataloader.DataLoader(
@@ -76,10 +354,6 @@ def get_prime_factors(n: int):
 
 
 def main():
-    """
-    Load an XYZ-based dataset and calculate the effective average energies of each atom, split by charge-spin state.
-    Then, add relative energies to the dataset based on those atomic energies.
-    """
 
     """
     This script loads an xyz dataset and prepares

@@ -27,8 +27,8 @@ def get_all_xyz_files(path: str):
     return xyz_files
 
 
-def relative_energies(data: list, atomic_energies: dict):
-    for item in tqdm(data):
+def relative_energies(atom_data: list, atomic_energies: dict):
+    for item in tqdm(atom_data):
         key = f"{int(item.info['charge'])}_{int(item.info['spin'])}"
         
         lookup_sum = 0
@@ -43,11 +43,6 @@ def main():
     """
     Load an XYZ-based dataset and calculate the effective average energies of each atom, split by charge-spin state.
     Then, add relative energies to the dataset based on those atomic energies.
-    """
-
-    """
-    This script loads an xyz dataset and prepares
-    new hdf5 file that is ready for training with on-the-fly dataloading
     """
 
     traj_path = ""
