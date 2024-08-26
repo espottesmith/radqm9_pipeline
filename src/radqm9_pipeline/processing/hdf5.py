@@ -14,6 +14,7 @@ import multiprocessing as mp
 import os
 from typing import Callable, List, Tuple
 
+from monty.serialization import loadfn, dumpfn
 
 from mace import tools, data
 from mace.data.utils import (
@@ -31,7 +32,7 @@ from mace.data.utils import (
 from mace.tools.scripts_utils import get_dataset_from_xyz, get_atomic_energies
 from mace.tools.utils import AtomicNumberTable
 from mace.tools import torch_geometric
-from mace.modules import compute_statistics    
+from mace.modules import compute_statistics
 
 
 # Note: in trajectory data, dipole moment keys are "dipole_moments", "resp_dipole_moments", and "calc_resp_dipole_moments"
@@ -42,14 +43,21 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--train_file",
-        help="Training set h5 file",
+        help="Training set xyz file",
         type=str,
         default=None,
         required=True,
     )
     parser.add_argument(
         "--valid_file",
-        help="Training set xyz file",
+        help="Validation set xyz file",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--test_file",
+        help="Test set xyz file",
         type=str,
         default=None,
         required=False,
@@ -65,13 +73,6 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         help="Fraction of training set used for validation",
         type=float,
         default=0.1,
-        required=False,
-    )
-    parser.add_argument(
-        "--test_file",
-        help="Test set xyz file",
-        type=str,
-        default=None,
         required=False,
     )
     parser.add_argument(
@@ -172,7 +173,6 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         type=int, 
         default=16,
     )
-
     parser.add_argument(
         "--scaling",
         help="type of scaling to the output",
@@ -198,6 +198,13 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         help="Random seed for splitting training and validation sets",
         type=int,
         default=123,
+    )
+    parser.add_argument(
+        "--extended",
+        help="Store additional data, including various types of calculated atomic partial charges, atomic partial"
+             "spins, and dipole moments",
+        type=bool,
+        default=False
     )
     return parser
 
@@ -588,7 +595,13 @@ def pool_compute_stats(inputs: List):
     path_to_files, z_table, r_max, atomic_energies, batch_size, num_process = inputs
     pool = mp.Pool(processes=num_process)
     
-    re=[pool.apply_async(compute_stats_target, args=(file, z_table, r_max, atomic_energies, batch_size,)) for file in glob(path_to_files+'/*')]
+    re = [
+        pool.apply_async(
+            compute_stats_target,
+            args=(file, z_table, r_max, atomic_energies, batch_size,)
+        ) 
+        for file in glob(path_to_files+'/*')
+    ]
     
     pool.close()
     pool.join()
@@ -621,8 +634,11 @@ def get_prime_factors(n: int):
     return factors
 
 
-def multi_train_hdf5(data: list, process: int, h5_prefix: str, drop_last: bool, save_function: Callable):
-    h5_file = f"{h5_prefix}/train/train_{process}.h5"
+def multi_hdf5(data: list, process: int, h5_prefix: str, subset: str, drop_last: bool, save_function: Callable, name: Optional[str] = None):
+    if name is None:
+        name = subset
+    
+    h5_file = f"{h5_prefix}/{subset}/{name}_{process}.h5"
 
     with h5py.File(h5_file, "w") as f:
         f.attrs["drop_last"] = drop_last
@@ -635,7 +651,7 @@ def main():
     This script loads an xyz dataset and prepares
     new hdf5 file that is ready for training with on-the-fly dataloading
     """
-    args = tools.build_preprocess_arg_parser().parse_args() 
+    args = build_preprocess_arg_parser().parse_args() 
     
     # Setup
     tools.set_seeds(args.seed)
@@ -657,39 +673,36 @@ def main():
         config_type_weights = {"Default": 1.0}
      
     # Data preparation
-    collections, atomic_energies_dict = get_dataset_from_xyz(
-        train_path=args.train_file,
-        valid_path=args.valid_file,
-        valid_fraction=args.valid_fraction,
-        config_type_weights=config_type_weights,
-        test_path=args.test_file,
-        seed=args.seed,
-        energy_key=args.energy_key,
-        forces_key=args.forces_key,
-        stress_key=args.stress_key,
-        virials_key=args.virials_key,
-        dipole_key=args.dipole_key,
-        charges_key=args.charges_key,
-    )
-
-    #TODO: change this. Actually should just be an if-statement. If "expanded", run with expanded function
-    # If not, use the normal function
-
-    # Expanded collections - including extra (non-essential) properties
-    exp_collections, exp_atomic_energies_dict = get_expanded_dataset_from_xyz(
-        train_path=args.train_file,
-        valid_path=args.valid_file,
-        valid_fraction=args.valid_fraction,
-        config_type_weights=config_type_weights,
-        test_path=args.test_file,
-        seed=args.seed,
-        energy_key=args.energy_key,
-        forces_key=args.forces_key,
-        stress_key=args.stress_key,
-        virials_key=args.virials_key,
-        dipole_key=args.dipole_key,
-        charges_key=args.charges_key,
-    )
+    if args.extended:
+        collections, atomic_energies_dict = get_expanded_dataset_from_xyz(
+            train_path=args.train_file,
+            valid_path=args.valid_file,
+            valid_fraction=args.valid_fraction,
+            config_type_weights=config_type_weights,
+            test_path=args.test_file,
+            seed=args.seed,
+            energy_key=args.energy_key,
+            forces_key=args.forces_key,
+            stress_key=args.stress_key,
+            virials_key=args.virials_key,
+            dipole_key=args.dipole_key,
+            charges_key=args.charges_key,
+        )
+    else:    
+        collections, atomic_energies_dict = get_dataset_from_xyz(
+            train_path=args.train_file,
+            valid_path=args.valid_file,
+            valid_fraction=args.valid_fraction,
+            config_type_weights=config_type_weights,
+            test_path=args.test_file,
+            seed=args.seed,
+            energy_key=args.energy_key,
+            forces_key=args.forces_key,
+            stress_key=args.stress_key,
+            virials_key=args.virials_key,
+            dipole_key=args.dipole_key,
+            charges_key=args.charges_key,
+        )
 
     # Atomic number table
     # yapf: disable
@@ -715,16 +728,23 @@ def main():
     drop_last = False
     if len(collections.train) % 2 == 1:
         drop_last = True
-      
+
+    if args.extended:
+            save_function = save_expanded_configurations_as_HDF5
+        else:
+            save_function = save_configurations_as_HDF5
+
     processes = []
     for i in range(args.num_process):
-        p = mp.Process(target=multi_train_hdf5, args=[i])
+        p = mp.Process(
+            target=multi_hdf5,
+            args=[split_train, i, args.h5_prefix, "train", drop_last, save_function, None]
+        )
         p.start()
         processes.append(p)
         
     for i in processes:
         i.join()
-
 
     logging.info("Computing statistics")
     if len(atomic_energies_dict) == 0:
@@ -732,25 +752,25 @@ def main():
     atomic_energies: np.ndarray = np.array(
         [atomic_energies_dict[z] for z in z_table.zs]
     )
+
     logging.info(f"Atomic energies: {atomic_energies.tolist()}")
-    _inputs = [args.h5_prefix+'train', z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
-    avg_num_neighbors, mean, std=pool_compute_stats(_inputs)
+    _inputs = [args.h5_prefix + '/train', z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
+    avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
     logging.info(f"Average number of neighbors: {avg_num_neighbors}")
     logging.info(f"Mean: {mean}")
     logging.info(f"Standard deviation: {std}")
 
     # save the statistics as a json
     statistics = {
-        "atomic_energies": str(atomic_energies_dict),
+        "atomic_energies": atomic_energies_dict,
         "avg_num_neighbors": avg_num_neighbors,
         "mean": mean,
         "std": std,
-        "atomic_numbers": str(z_table.zs),
+        "atomic_numbers": z_table.zs,
         "r_max": args.r_max,
     }
-    
-    with open(args.h5_prefix + "statistics.json", "w") as f:
-        json.dump(statistics, f)
+
+    dumpfn(statistics, args.h5_prefix + "/statistics.json")
     
     logging.info("Preparing validation set")
     if args.shuffle:
@@ -760,14 +780,12 @@ def main():
     if len(collections.valid) % 2 == 1:
         drop_last = True
 
-    def multi_valid_hdf5(process):
-        with h5py.File(args.h5_prefix + "val/val_" + str(process)+".h5", "w") as f:
-            f.attrs["drop_last"] = drop_last
-            save_configurations_as_HDF5(split_valid[process], process, f)
-    
     processes = []
     for i in range(args.num_process):
-        p = mp.Process(target=multi_valid_hdf5, args=[i])
+        p = mp.Process(
+            target=multi_hdf5,
+            args=[split_valid, i, args.h5_prefix, "val", drop_last, save_function, None]
+        )
         p.start()
         processes.append(p)
         
@@ -775,11 +793,6 @@ def main():
         i.join()
 
     if args.test_file is not None:
-        def multi_test_hdf5(process, name):
-            with h5py.File(args.h5_prefix + "test/" + name + "_" + str(process) + ".h5", "w") as f:                    
-                f.attrs["drop_last"] = drop_last
-                save_configurations_as_HDF5(split_test[process], process, f)
-            
         logging.info("Preparing test sets")
         for name, subset in collections.tests:
             drop_last = False
@@ -789,12 +802,16 @@ def main():
 
             processes = []
             for i in range(args.num_process):
-                p = mp.Process(target=multi_test_hdf5, args=[i, name])
+                p = mp.Process(
+                    target=multi_hdf5,
+                    args=[split_test, i, args.h5_prefix, "test", drop_last, save_function, name]
+                )
                 p.start()
                 processes.append(p)
-
+                
             for i in processes:
                 i.join()
+
 
 if __name__ == "__main__":
     main()
