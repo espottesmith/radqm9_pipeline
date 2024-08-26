@@ -35,7 +35,13 @@ def relative_energies(atom_data: list, atomic_energies: dict):
         for num in item.arrays['numbers']:
             lookup_sum += atomic_energies[key][num]
         
-        rel = item.info['energy'] - lookup_sum
+        try:
+            energy = atoms.info["energy"]  # eV
+        except KeyError:
+            # this ugly bit is for compatibility with newest ASE versions
+            energy = atoms.get_potential_energy()
+
+        rel = energy - lookup_sum
         item.info['relative_energy'] = rel
 
 

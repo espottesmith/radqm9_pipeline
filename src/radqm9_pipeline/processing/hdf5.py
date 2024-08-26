@@ -121,9 +121,9 @@ def expanded_config_from_atoms(
     forces_key="forces",
     stress_key="stress",
     virials_key="virials",
-    dipole_key="dipole",
+    dipole_key="dipole_moments",
     charges_key="charges",
-    total_charge_key="charge",
+    total_charge_key="mulliken_partial_charges",
     spin_key="spin",
     config_type_weights: Dict[str, float] = None,
 ) -> Configuration:
@@ -132,12 +132,35 @@ def expanded_config_from_atoms(
         config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
 
     energy = atoms.info.get(energy_key, None)  # eV
+    relative_energy = atoms.info.get("relative_energy", None)  # eV
     forces = atoms.arrays.get(forces_key, None)  # eV / Ang
     stress = atoms.info.get(stress_key, None)  # eV / Ang
     virials = atoms.info.get(virials_key, None)
+
+    # Dipole moments
     dipole = atoms.info.get(dipole_key, None)  # Debye
+    if dipole is None and dipole_key == "dipole_moments":
+        dipole = atoms.info.get("dipole_moment", None)
+
+    resp_dipole = atoms.info.get("resp_dipole_moments", None)
+    if resp_dipole is None:
+        resp_dipole = atoms.info.get("resp_dipole_moment", None)
+
+    calc_resp_dipole = atoms.info.get("calc_resp_dipole_moments", None)
+    if calc_resp_dipole is None:
+        calc_resp_dipole = atoms.info.get("calc_resp_dipole_moment", None)
+    
+    # Atomic partial charges and spins
+    # All charges and spins given in atomic units
     # Charges default to 0 instead of None if not found
-    charges = atoms.arrays.get(charges_key, np.zeros(len(atoms)))  # atomic unit
+    charges = atoms.arrays.get(charges_key, np.zeros(len(atoms)))
+
+    mulliken_charges = atoms.arrays.get("mulliken_partial_charges", np.zeros(len(atoms)))
+    mulliken_spins = atoms.arrays.get("mulliken_partial_spins", np.zeros(len(atoms)))
+    resp_charges = atoms.arrays.get("resp_partial_charges", np.zeros(len(atoms)))
+    nbo_charges = atoms.arrays.get("nbo_partial_charges", np.zeros(len(atoms)))
+    nbo_spins = atoms.arrays.get("nbo_partial_spins", np.zeros(len(atoms)))
+    
     total_charge = atoms.info.get(total_charge_key, 0)
     spin = atoms.info.get(spin_key, 0)
     atomic_numbers = np.array(
