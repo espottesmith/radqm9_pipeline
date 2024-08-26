@@ -787,7 +787,7 @@ if __name__ == "__main__":
 
     ood_minimal = build_minimal_atoms_iterator(ood, energy="energies")
     file = os.path.join(minimal_data_path, 'radqm9_65_10_25_trajectory_minimal_data_20240807_ood.xyz')
-    ase.io.write(file, ood_minimal,format="extxyz")
+    ase.io.write(file, ood_minimal, format="extxyz")
 
     # Charge/spin subsets
     train_cs_dict = {}
