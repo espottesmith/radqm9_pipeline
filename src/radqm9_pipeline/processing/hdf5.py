@@ -1,6 +1,7 @@
 # This file loads an xyz dataset and prepares
 # new hdf5 file that is ready for training with on-the-fly dataloading
 
+import dataclasses
 import logging
 import ast
 import numpy as np
@@ -11,7 +12,7 @@ from glob import glob
 import h5py
 import multiprocessing as mp
 import os
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 
 from mace import tools, data
@@ -25,6 +26,7 @@ from mace.data.utils import (
     Cell,
     Pbc,
     save_configurations_as_HDF5,
+    write_value
 )
 from mace.tools.scripts_utils import get_dataset_from_xyz, get_atomic_energies
 from mace.tools.utils import AtomicNumberTable
@@ -36,11 +38,176 @@ from mace.modules import compute_statistics
 # In sp data, they are "dipole_moment", "resp_dipole_moment", and "calc_resp_dipole_moment". Whoops...
 
 
-@dataclass
+def build_preprocess_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--train_file",
+        help="Training set h5 file",
+        type=str,
+        default=None,
+        required=True,
+    )
+    parser.add_argument(
+        "--valid_file",
+        help="Training set xyz file",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--num_process",
+        help="The user defined number of processes to use, as well as the number of files created.", 
+        type=int, 
+        default=int(os.cpu_count()/4)
+    )
+    parser.add_argument(
+        "--valid_fraction",
+        help="Fraction of training set used for validation",
+        type=float,
+        default=0.1,
+        required=False,
+    )
+    parser.add_argument(
+        "--test_file",
+        help="Test set xyz file",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--h5_prefix",
+        help="Prefix for h5 files when saving",
+        type=str,
+        default="",
+    )
+    parser.add_argument(
+        "--r_max", help="distance cutoff (in Ang)", 
+        type=float, 
+        default=5.0
+    )
+    parser.add_argument(
+        "--config_type_weights",
+        help="String of dictionary containing the weights for each config type",
+        type=str,
+        default='{"Default":1.0}',
+    )
+    parser.add_argument(
+        "--energy_key",
+        help="Key of reference energies in training xyz",
+        type=str,
+        default="energy",
+    )
+    parser.add_argument(
+        "--forces_key",
+        help="Key of reference forces in training xyz",
+        type=str,
+        default="forces",
+    )
+    parser.add_argument(
+        "--virials_key",
+        help="Key of reference virials in training xyz",
+        type=str,
+        default="virials",
+    )
+    parser.add_argument(
+        "--stress_key",
+        help="Key of reference stress in training xyz",
+        type=str,
+        default="stress",
+    )
+    parser.add_argument(
+        "--dipole_key",
+        help="Key of reference dipoles in training xyz",
+        type=str,
+        default="dipole",
+    )
+    parser.add_argument(
+        "--charges_key",
+        help="Key of atomic charges in training xyz",
+        type=str,
+        default="charges",
+    )
+    parser.add_argument(
+        "--total_charge_key",
+        help="Key of molecular charge in training xyz",
+        type=str,
+        default="charge",
+    )
+    parser.add_argument(
+        "--spin_key",
+        help="Key of molecular spin in training xyz",
+        type=str,
+        default="spin",
+    )
+    parser.add_argument(
+        "--atomic_numbers",
+        help="List of atomic numbers",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--total_charges",
+        help="List total molecular charges",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--spins",
+        help="List of molecular spins",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--compute_statistics",
+        help="Compute statistics for the dataset",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--batch_size", 
+        help="batch size to compute average number of neighbours", 
+        type=int, 
+        default=16,
+    )
+
+    parser.add_argument(
+        "--scaling",
+        help="type of scaling to the output",
+        type=str,
+        default="rms_forces_scaling",
+        choices=["std_scaling", "rms_forces_scaling", "no_scaling"],
+    )
+    parser.add_argument(
+        "--E0s",
+        help="Dictionary of isolated atom energies",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--shuffle",
+        help="Shuffle the training dataset",
+        type=bool,
+        default=True,
+    )
+    parser.add_argument(
+        "--seed",
+        help="Random seed for splitting training and validation sets",
+        type=int,
+        default=123,
+    )
+    return parser
+
+
+@dataclasses.dataclass
 class ExpandedConfiguration:
     atomic_numbers: np.ndarray
     positions: Positions  # Angstrom
     energy: Optional[float] = None  # eV
+    relative_energy: Optional[float] = None  # eV
     forces: Optional[Forces] = None  # eV/Angstrom
     stress: Optional[Stress] = None  # eV/Angstrom^3
     virials: Optional[Virials] = None  # eV
@@ -67,6 +234,10 @@ class ExpandedConfiguration:
     forces_weight: float = 1.0  # weight of config forces in loss
     stress_weight: float = 1.0  # weight of config stress in loss
     virials_weight: float = 1.0  # weight of config virial in loss
+    charges_weight: float = 1.0  # weight of config partial charges in loss
+    total_charge_weight: float = 1.0  # weight of config total charge in loss
+    spins_weight: float = 1.0  # weight of config partial spins in loss
+    total_spin_weight: float = 1.0  # weight of config spin multiplicity in loss
     config_type: Optional[str] = "Default"  # config_type of config
 
 
@@ -176,6 +347,10 @@ def expanded_config_from_atoms(
     forces_weight = atoms.info.get("config_forces_weight", 1.0)
     stress_weight = atoms.info.get("config_stress_weight", 1.0)
     virials_weight = atoms.info.get("config_virials_weight", 1.0)
+    charges_weight = atoms.info.get("config_charges_weight", 1.0)
+    total_charge_weight = atoms.info.get("config_total_charge_weight", 1.0)
+    spins_weight = atoms.info.get("config_spins_weight", 1.0)
+    total_spin_weight = atoms.info.get("config_total_spin_weight", 1.0)
 
     # fill in missing quantities but set their weight to 0.0
     if energy is None:
@@ -193,16 +368,33 @@ def expanded_config_from_atoms(
     if dipole is None:
         dipole = np.zeros(3)
         # dipoles_weight = 0.0
+    if charges is None:
+        charges = np.zeros(len(atomic_numbers))
+        charges_weight = 0.0
+        total_charge_weight = 0.0
+    if mulliken_spins is None and nbo_spins is None:
+        mulliken_spins = np.zeros(len(atomic_numbers))
+        nbo_spins = np.zeros(len(atomic_numbers))
+        spins_weight = 0.0
+        total_spin_weight = 0.0
 
-    return Configuration(
+    return ExpandedConfiguration(
         atomic_numbers=atomic_numbers,
         positions=atoms.get_positions(),
         energy=energy,
+        relative_energy=relative_energy,
         forces=forces,
         stress=stress,
         virials=virials,
         dipole=dipole,
+        resp_dipole=resp_dipole,
+        calc_resp_dipole=calc_resp_dipole,
         charges=charges,
+        mulliken_partial_charges=mulliken_charges,
+        mulliken_partial_spins=mulliken_spins,
+        resp_partial_charges=resp_charges,
+        nbo_partial_charges=nbo_charges,
+        nbo_partial_spins=nbo_spins,
         total_charge=total_charge,
         spin=spin,
         weight=weight,
@@ -210,6 +402,10 @@ def expanded_config_from_atoms(
         forces_weight=forces_weight,
         stress_weight=stress_weight,
         virials_weight=virials_weight,
+        charges_weight=charges_weight,
+        total_charge_weight=total_charge_weight,
+        spins_weight=spins_weight,
+        total_spin_weight=total_spin_weight,
         config_type=config_type,
         pbc=pbc,
         cell=cell,
@@ -330,6 +526,50 @@ def get_expanded_dataset_from_xyz(
     return ExpandedSubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs)
 
 
+def save_expanded_configurations_as_HDF5(configurations: ExpandedConfigurations, i, h5_file) -> None:
+    grp = h5_file.create_group("config_batch_0")
+    for i, config in enumerate(configurations):
+        subgroup_name = f"config_{i}"
+        subgroup = grp.create_group(subgroup_name)
+
+        subgroup["atomic_numbers"] = write_value(config.atomic_numbers)
+        subgroup["positions"] = write_value(config.positions)
+        subgroup["energy"] = write_value(config.energy)
+        subgroup["relative_energy"] = write_value(config.relative_energy)
+        
+        subgroup["forces"] = write_value(config.forces)
+        subgroup["stress"] = write_value(config.stress)
+        subgroup["virials"] = write_value(config.virials)
+        
+        subgroup["dipole"] = write_value(config.dipole)
+        subgroup["resp_dipole"] = write_value(config.resp_dipole)
+        subgroup["calc_resp_dipole"] = write_value(config.calc_resp_dipole)
+        
+        subgroup["charges"] = write_value(config.charges)
+        subgroup["mulliken_partial_charges"] = write_value(config.mulliken_partial_charges)
+        subgroup["mulliken_partial_spins"] = write_value(config.mulliken_partial_spins)
+        subgroup["resp_partial_charges"] = write_value(config.resp_partial_charges)
+        subgroup["nbo_partial_charges"] = write_value(config.nbo_partial_charges)
+        subgroup["nbo_partial_spins"] = write_value(config.nbo_partial_spins)
+
+        subgroup["total_charge"] = write_value(config.total_charge)
+        subgroup["spin"] = write_value(config.spin)
+        subgroup["cell"] = write_value(config.cell)
+        subgroup["pbc"] = write_value(config.pbc)
+
+        subgroup["weight"] = write_value(config.weight)
+        subgroup["energy_weight"] = write_value(config.energy_weight)
+        subgroup["forces_weight"] = write_value(config.forces_weight)
+        subgroup["stress_weight"] = write_value(config.stress_weight)
+        subgroup["virials_weight"] = write_value(config.virials_weight)
+        subgroup["charges_weight"] = write_value(config.charges_weight)
+        subgroup["total_charge_weight"] = write_value(config.total_charge_weight)
+        subgroup["spins_weight"] = write_value(config.spins_weight)
+        subgroup["total_spin_weight"] = write_value(config.total_spin_weight)
+
+        subgroup["config_type"] = write_value(config.config_type)
+
+
 def compute_stats_target(file: str, z_table: AtomicNumberTable, r_max: float, atomic_energies: Tuple, batch_size: int):
     train_dataset = data.HDF5Dataset(file, z_table=z_table, r_max=r_max)
     train_loader = torch_geometric.dataloader.DataLoader(
@@ -381,6 +621,14 @@ def get_prime_factors(n: int):
     return factors
 
 
+def multi_train_hdf5(data: list, process: int, h5_prefix: str, drop_last: bool, save_function: Callable):
+    h5_file = f"{h5_prefix}/train/train_{process}.h5"
+
+    with h5py.File(h5_file, "w") as f:
+        f.attrs["drop_last"] = drop_last
+        save_function(data[process], process, f)
+
+
 def main():
 
     """
@@ -424,6 +672,9 @@ def main():
         charges_key=args.charges_key,
     )
 
+    #TODO: change this. Actually should just be an if-statement. If "expanded", run with expanded function
+    # If not, use the normal function
+
     # Expanded collections - including extra (non-essential) properties
     exp_collections, exp_atomic_energies_dict = get_expanded_dataset_from_xyz(
         train_path=args.train_file,
@@ -460,16 +711,10 @@ def main():
         random.shuffle(collections.train)
 
     # split collections.train into batches and save them to hdf5
-    split_train = np.array_split(collections.train,args.num_process)
+    split_train = np.array_split(collections.train, args.num_process)
     drop_last = False
     if len(collections.train) % 2 == 1:
         drop_last = True
-    
-    # Define Task for Multiprocessiing
-    def multi_train_hdf5(process):
-        with h5py.File(args.h5_prefix + "train/train_" + str(process)+".h5", "w") as f:
-            f.attrs["drop_last"] = drop_last
-            save_configurations_as_HDF5(split_train[process], process, f)
       
     processes = []
     for i in range(args.num_process):
