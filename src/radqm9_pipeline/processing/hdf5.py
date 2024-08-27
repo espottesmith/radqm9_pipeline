@@ -808,7 +808,10 @@ def main():
             f"Config type weights not specified correctly ({e}), using Default"
         )
         config_type_weights = {"Default": 1.0}
-     
+    
+    if not os.path.exists(args.h5_prefix):
+        os.mkdir(args.h5_prefix)
+
     # Data preparation
     if args.extended:
         collections = get_expanded_dataset_from_xyz(
@@ -858,6 +861,8 @@ def main():
         z_table = tools.get_atomic_number_table_from_zs(zs_list)
 
     logging.info("Preparing training set")
+    if not os.path.exists(os.path.join(args.h5_prefix, "train")):
+        os.mkdir(os.path.join(args.h5_prefix, "train"))
     if args.shuffle:
         random.shuffle(collections.train)
 
@@ -910,6 +915,8 @@ def main():
     dumpfn(statistics, args.h5_prefix + "/statistics.json")
     
     logging.info("Preparing validation set")
+    if not os.path.exists(os.path.join(args.h5_prefix, "val")):
+        os.mkdir(os.path.join(args.h5_prefix, "val"))
     if args.shuffle:
         random.shuffle(collections.valid)
     split_valid = np.array_split(collections.valid, args.num_process) 
@@ -931,6 +938,8 @@ def main():
 
     if args.test_file is not None:
         logging.info("Preparing test sets")
+        if not os.path.exists(os.path.join(args.h5_prefix, "test")):
+            os.mkdir(os.path.join(args.h5_prefix, "test"))
         for name, subset in collections.tests:
             drop_last = False
             if len(subset) % 2 == 1:
@@ -951,6 +960,9 @@ def main():
 
     logging.info("Preparing OOD test set")
     if args.ood_file is not None:
+        if not os.path.exists(os.path.join(args.h5_prefix, "ood")):
+            os.mkdir(os.path.join(args.h5_prefix, "ood"))
+
         split_ood = np.array_split(collections.ood, args.num_process) 
         drop_last = False
         if len(collections.ood) % 2 == 1:
