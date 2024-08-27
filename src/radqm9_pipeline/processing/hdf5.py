@@ -820,7 +820,7 @@ def main():
             valid_fraction=args.valid_fraction,
             config_type_weights=config_type_weights,
             test_path=args.test_file,
-            ood_path=args.ood_path,
+            ood_path=args.ood_file,
             seed=args.seed,
             energy_key=args.energy_key,
             forces_key=args.forces_key,
