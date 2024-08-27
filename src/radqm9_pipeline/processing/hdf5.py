@@ -16,7 +16,6 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 import ase
 
-from monty.serialization import dumpfn
 
 from mace import tools, data
 from mace.data.utils import (
@@ -31,7 +30,6 @@ from mace.data.utils import (
     save_configurations_as_HDF5,
     write_value
 )
-from mace.tools.scripts_utils import get_atomic_energies
 from mace.tools.utils import AtomicNumberTable
 from mace.tools import torch_geometric
 from mace.modules import compute_statistics
@@ -845,20 +843,20 @@ def main():
             charges_key=args.charges_key,
         )
 
-    # Atomic number table
-    # yapf: disable
-    if args.atomic_numbers is None:
-        z_table = tools.get_atomic_number_table_from_zs(
-            z
-            for configs in (collections.train, collections.valid)
-            for config in configs
-            for z in config.atomic_numbers
-        )
-    else:
-        logging.info("Using atomic numbers from command line argument")
-        zs_list = ast.literal_eval(args.atomic_numbers)
-        assert isinstance(zs_list, list)
-        z_table = tools.get_atomic_number_table_from_zs(zs_list)
+    # # Atomic number table
+    # # yapf: disable
+    # if args.atomic_numbers is None:
+    #     z_table = tools.get_atomic_number_table_from_zs(
+    #         z
+    #         for configs in (collections.train, collections.valid)
+    #         for config in configs
+    #         for z in config.atomic_numbers
+    #     )
+    # else:
+    #     logging.info("Using atomic numbers from command line argument")
+    #     zs_list = ast.literal_eval(args.atomic_numbers)
+    #     assert isinstance(zs_list, list)
+    #     z_table = tools.get_atomic_number_table_from_zs(zs_list)
 
     logging.info("Preparing training set")
     if not os.path.exists(os.path.join(args.h5_prefix, "train")):
