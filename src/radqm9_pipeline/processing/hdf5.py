@@ -31,7 +31,7 @@ from mace.data.utils import (
     save_configurations_as_HDF5,
     write_value
 )
-from mace.tools.scripts_utils import get_dataset_from_xyz, get_atomic_energies
+from mace.tools.scripts_utils import get_atomic_energies
 from mace.tools.utils import AtomicNumberTable
 from mace.tools import torch_geometric
 from mace.modules import compute_statistics
@@ -60,6 +60,13 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--test_file",
         help="Test set xyz file",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--ood_file",
+        help="OOD test set xyz file",
         type=str,
         default=None,
         required=False,
@@ -258,6 +265,15 @@ class ExpandedSubsetCollection:
     train: ExpandedConfigurations
     valid: ExpandedConfigurations
     tests: List[Tuple[str, ExpandedConfigurations]]
+    ood: ExpandedConfigurations
+
+
+@dataclasses.dataclass
+class SubsetCollection:
+    train: data.Configurations
+    valid: data.Configurations
+    tests: List[Tuple[str, data.Configurations]]
+    ood: data.Configurations
 
 
 def expanded_config_from_atoms_list(
@@ -272,7 +288,7 @@ def expanded_config_from_atoms_list(
     spin_key="spin",
     config_type_weights: Dict[str, float] = None,
 ) -> ExpandedConfigurations:
-    """Convert list of ase.Atoms into Configurations"""
+    """Convert list of ase.Atoms into ExpandedConfigurations"""
     if config_type_weights is None:
         config_type_weights = {"Default": 1.0}
 
@@ -307,7 +323,7 @@ def expanded_config_from_atoms(
     spin_key="spin",
     config_type_weights: Dict[str, float] = None,
 ) -> ExpandedConfiguration:
-    """Convert ase.Atoms to Configuration"""
+    """Convert ase.Atoms to ExpandedConfiguration"""
     if config_type_weights is None:
         config_type_weights = {"Default": 1.0}
 
@@ -461,6 +477,7 @@ def get_expanded_dataset_from_xyz(
     valid_fraction: float,
     config_type_weights: Dict,
     test_path: Optional[str] = None,
+    ood_path: Optional[str] = None,
     seed: int = 1234,
     energy_key: str = "energy",
     forces_key: str = "forces",
@@ -470,7 +487,7 @@ def get_expanded_dataset_from_xyz(
     charges_key: str = "mulliken_partial_charges",
     total_charge_key: str = "charge",
     spin_key: str = "spin",
-) -> Tuple[ExpandedSubsetCollection, Optional[Dict[int, float]]]:
+) -> ExpandedSubsetCollection:
     
     """Load training, validation, and test datasets from xyz files"""
 
@@ -531,8 +548,26 @@ def get_expanded_dataset_from_xyz(
         logging.info(
             f"Loaded {len(all_test_configs)} test configurations from '{test_path}'"
         )
+
+    ood_configs = []
+    if ood_path is not None:
+        ood_configs = load_from_xyz_expanded(
+            file_path=ood_path,
+            config_type_weights=config_type_weights,
+            energy_key=energy_key,
+            forces_key=forces_key,
+            stress_key=stress_key,
+            virials_key=virials_key,
+            dipole_key=dipole_key,
+            charges_key=charges_key,
+            total_charge_key=total_charge_key,
+            spin_key=spin_key,
+        )
+        logging.info(
+            f"Loaded {len(ood_configs)} OOD test configurations from '{ood_path}'"
+        )
     
-    return ExpandedSubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs)
+    return ExpandedSubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs, ood=ood_configs)
 
 
 def save_expanded_configurations_as_HDF5(configurations: ExpandedConfigurations, i, h5_file) -> None:
@@ -577,6 +612,106 @@ def save_expanded_configurations_as_HDF5(configurations: ExpandedConfigurations,
         subgroup["total_spin_weight"] = write_value(config.total_spin_weight)
 
         subgroup["config_type"] = write_value(config.config_type)
+
+
+def get_dataset_from_xyz(
+    train_path: str,
+    valid_path: str,
+    valid_fraction: float,
+    config_type_weights: Dict,
+    test_path: Optional[str] = None,
+    ood_path: Optional[str] = None,
+    seed: int = 1234,
+    energy_key: str = "energy",
+    forces_key: str = "forces",
+    stress_key: str = "stress",
+    virials_key: str = "virials",
+    dipole_key: str = "dipoles",
+    charges_key: str = "charges",
+    total_charge_key: str = "charge",
+    spin_key: str = "spin",
+) -> SubsetCollection:
+    """Load training and test dataset from xyz file"""
+    _, all_train_configs = data.load_from_xyz(
+        file_path=train_path,
+        config_type_weights=config_type_weights,
+        energy_key=energy_key,
+        forces_key=forces_key,
+        stress_key=stress_key,
+        virials_key=virials_key,
+        dipole_key=dipole_key,
+        charges_key=charges_key,
+        total_charge_key=total_charge_key,
+        spin_key=spin_key,
+        extract_atomic_energies=False,
+    )
+    logging.info(
+        f"Loaded {len(all_train_configs)} training configurations from '{train_path}'"
+    )
+    if valid_path is not None:
+        _, valid_configs = data.load_from_xyz(
+            file_path=valid_path,
+            config_type_weights=config_type_weights,
+            energy_key=energy_key,
+            forces_key=forces_key,
+            stress_key=stress_key,
+            virials_key=virials_key,
+            dipole_key=dipole_key,
+            charges_key=charges_key,
+            total_charge_key=total_charge_key,
+            spin_key=spin_key,
+            extract_atomic_energies=False,
+        )
+        logging.info(
+            f"Loaded {len(valid_configs)} validation configurations from '{valid_path}'"
+        )
+        train_configs = all_train_configs
+    else:
+        logging.info(
+            "Using random %s%% of training set for validation", 100 * valid_fraction
+        )
+        train_configs, valid_configs = data.random_train_valid_split(
+            all_train_configs, valid_fraction, seed
+        )
+
+    test_configs = []
+    if test_path is not None:
+        _, all_test_configs = data.load_from_xyz(
+            file_path=test_path,
+            config_type_weights=config_type_weights,
+            energy_key=energy_key,
+            forces_key=forces_key,
+            dipole_key=dipole_key,
+            charges_key=charges_key,
+            total_charge_key=total_charge_key,
+            spin_key=spin_key,
+            extract_atomic_energies=False,
+        )
+        # create list of tuples (config_type, list(Atoms))
+        test_configs = data.test_config_types(all_test_configs)
+        logging.info(
+            f"Loaded {len(all_test_configs)} test configurations from '{test_path}'"
+        )
+
+    ood_configs = []
+    if ood_path is not None:
+        ood_configs = data.load_from_xyz(
+            file_path=ood_path,
+            config_type_weights=config_type_weights,
+            energy_key=energy_key,
+            forces_key=forces_key,
+            stress_key=stress_key,
+            virials_key=virials_key,
+            dipole_key=dipole_key,
+            charges_key=charges_key,
+            total_charge_key=total_charge_key,
+            spin_key=spin_key,
+        )
+        logging.info(
+            f"Loaded {len(ood_configs)} OOD test configurations from '{ood_path}'"
+        )
+
+    return SubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs, ood=ood_configs),
 
 
 def compute_stats_target(file: str, z_table: AtomicNumberTable, r_max: float, atomic_energies: Tuple, batch_size: int):
@@ -676,12 +811,13 @@ def main():
      
     # Data preparation
     if args.extended:
-        collections, atomic_energies_dict = get_expanded_dataset_from_xyz(
+        collections = get_expanded_dataset_from_xyz(
             train_path=args.train_file,
             valid_path=args.valid_file,
             valid_fraction=args.valid_fraction,
             config_type_weights=config_type_weights,
             test_path=args.test_file,
+            ood_path=args.ood_path,
             seed=args.seed,
             energy_key=args.energy_key,
             forces_key=args.forces_key,
@@ -691,7 +827,7 @@ def main():
             charges_key=args.charges_key,
         )
     else:    
-        collections, atomic_energies_dict = get_dataset_from_xyz(
+        collections = get_dataset_from_xyz(
             train_path=args.train_file,
             valid_path=args.valid_file,
             valid_fraction=args.valid_fraction,
@@ -749,8 +885,7 @@ def main():
         i.join()
 
     logging.info("Computing statistics")
-    if len(atomic_energies_dict) == 0:
-        atomic_energies_dict = get_atomic_energies(args.E0s, collections.train, z_table)
+    atomic_energies_dict = get_atomic_energies(args.E0s, collections.train, z_table)
     atomic_energies: np.ndarray = np.array(
         [atomic_energies_dict[z] for z in z_table.zs]
     )
@@ -813,6 +948,25 @@ def main():
                 
             for i in processes:
                 i.join()
+
+    logging.info("Preparing OOD test set")
+    if args.ood_file is not None:
+        split_ood = np.array_split(collections.ood, args.num_process) 
+        drop_last = False
+        if len(collections.ood) % 2 == 1:
+            drop_last = True
+
+        processes = []
+        for i in range(args.num_process):
+            p = mp.Process(
+                target=multi_hdf5,
+                args=[split_ood, i, args.h5_prefix, "ood", drop_last, save_function, None]
+            )
+            p.start()
+            processes.append(p)
+            
+        for i in processes:
+            i.join()
 
 
 if __name__ == "__main__":
