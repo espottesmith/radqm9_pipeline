@@ -212,8 +212,8 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         "--extended",
         help="Store additional data, including various types of calculated atomic partial charges, atomic partial"
              "spins, and dipole moments",
-        type=bool,
-        default=False
+        action="store_true",
+        default=False,
     )
     return parser
 
