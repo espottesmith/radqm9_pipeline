@@ -711,7 +711,7 @@ def get_dataset_from_xyz(
             f"Loaded {len(ood_configs)} OOD test configurations from '{ood_path}'"
         )
 
-    return SubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs, ood=ood_configs),
+    return SubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs, ood=ood_configs)
 
 
 def compute_stats_target(file: str, z_table: AtomicNumberTable, r_max: float, atomic_energies: Tuple, batch_size: int):
