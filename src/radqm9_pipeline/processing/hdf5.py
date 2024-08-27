@@ -1,20 +1,22 @@
 # This file loads an xyz dataset and prepares
 # new hdf5 file that is ready for training with on-the-fly dataloading
 
+import argparse
 import dataclasses
 import logging
 import ast
 import numpy as np
-import json
 import random
 import tqdm
 from glob import glob
 import h5py
 import multiprocessing as mp
 import os
-from typing import Callable, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
-from monty.serialization import loadfn, dumpfn
+import ase
+
+from monty.serialization import dumpfn
 
 from mace import tools, data
 from mace.data.utils import (
@@ -229,7 +231,7 @@ class ExpandedConfiguration:
 
     dipole: Optional[Vector] = None  # Debye
     resp_dipole: Optional[Vector] = None  # Debye
-    calc_resp_dipole: Optiona[Vector] = None  # Debye
+    calc_resp_dipole: Optional[Vector] = None  # Debye
 
     total_charge: Optional[int] = None # molecular charge
     spin: Optional[int] = None # molecular spin
@@ -269,10 +271,10 @@ def expanded_config_from_atoms_list(
     total_charge_key="charge",
     spin_key="spin",
     config_type_weights: Dict[str, float] = None,
-) -> Configurations:
+) -> ExpandedConfigurations:
     """Convert list of ase.Atoms into Configurations"""
     if config_type_weights is None:
-        config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
+        config_type_weights = {"Default": 1.0}
 
     all_configs = []
     for atoms in atoms_list:
@@ -304,10 +306,10 @@ def expanded_config_from_atoms(
     total_charge_key="mulliken_partial_charges",
     spin_key="spin",
     config_type_weights: Dict[str, float] = None,
-) -> Configuration:
+) -> ExpandedConfiguration:
     """Convert ase.Atoms to Configuration"""
     if config_type_weights is None:
-        config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
+        config_type_weights = {"Default": 1.0}
 
     energy = atoms.info.get(energy_key, None)  # eV
     relative_energy = atoms.info.get("relative_energy", None)  # eV
@@ -468,7 +470,7 @@ def get_expanded_dataset_from_xyz(
     charges_key: str = "mulliken_partial_charges",
     total_charge_key: str = "charge",
     spin_key: str = "spin",
-) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
+) -> Tuple[ExpandedSubsetCollection, Optional[Dict[int, float]]]:
     
     """Load training, validation, and test datasets from xyz files"""
 
@@ -730,9 +732,9 @@ def main():
         drop_last = True
 
     if args.extended:
-            save_function = save_expanded_configurations_as_HDF5
-        else:
-            save_function = save_configurations_as_HDF5
+        save_function = save_expanded_configurations_as_HDF5
+    else:
+        save_function = save_configurations_as_HDF5
 
     processes = []
     for i in range(args.num_process):
