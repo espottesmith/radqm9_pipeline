@@ -889,30 +889,30 @@ def main():
     for i in processes:
         i.join()
 
-    logging.info("Computing statistics")
-    atomic_energies_dict = get_atomic_energies(args.E0s, collections.train, z_table)
-    atomic_energies: np.ndarray = np.array(
-        [atomic_energies_dict[z] for z in z_table.zs]
-    )
+    # logging.info("Computing statistics")
+    # atomic_energies_dict = get_atomic_energies(args.E0s, collections.train, z_table)
+    # atomic_energies: np.ndarray = np.array(
+    #     [atomic_energies_dict[z] for z in z_table.zs]
+    # )
 
-    logging.info(f"Atomic energies: {atomic_energies.tolist()}")
-    _inputs = [args.h5_prefix + '/train', z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
-    avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
-    logging.info(f"Average number of neighbors: {avg_num_neighbors}")
-    logging.info(f"Mean: {mean}")
-    logging.info(f"Standard deviation: {std}")
+    # logging.info(f"Atomic energies: {atomic_energies.tolist()}")
+    # _inputs = [args.h5_prefix + '/train', z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
+    # avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
+    # logging.info(f"Average number of neighbors: {avg_num_neighbors}")
+    # logging.info(f"Mean: {mean}")
+    # logging.info(f"Standard deviation: {std}")
 
     # save the statistics as a json
-    statistics = {
-        "atomic_energies": atomic_energies_dict,
-        "avg_num_neighbors": avg_num_neighbors,
-        "mean": mean,
-        "std": std,
-        "atomic_numbers": z_table.zs,
-        "r_max": args.r_max,
-    }
+    # statistics = {
+    #     "atomic_energies": atomic_energies_dict,
+    #     "avg_num_neighbors": avg_num_neighbors,
+    #     "mean": mean,
+    #     "std": std,
+    #     "atomic_numbers": z_table.zs,
+    #     "r_max": args.r_max,
+    # }
 
-    dumpfn(statistics, args.h5_prefix + "/statistics.json")
+    # dumpfn(statistics, args.h5_prefix + "/statistics.json")
     
     logging.info("Preparing validation set")
     if not os.path.exists(os.path.join(args.h5_prefix, "val")):
