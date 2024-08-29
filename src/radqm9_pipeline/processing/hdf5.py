@@ -231,12 +231,12 @@ class ExpandedConfiguration:
     mulliken_partial_charges: Optional[Charges] = None  # atomic unit
     mulliken_partial_spins: Optional[Charges] = None  # atomic unit
     resp_partial_charges: Optional[Charges] = None  # atomic unit
-    nbo_partial_charges: Optional[Charges] = None  # atomic unit
-    nbo_partial_spins: Optional[Charges] = None  # atomic unit
+    # nbo_partial_charges: Optional[Charges] = None  # atomic unit
+    # nbo_partial_spins: Optional[Charges] = None  # atomic unit
 
     dipole: Optional[Vector] = None  # Debye
     resp_dipole: Optional[Vector] = None  # Debye
-    calc_resp_dipole: Optional[Vector] = None  # Debye
+    # calc_resp_dipole: Optional[Vector] = None  # Debye
 
     total_charge: Optional[int] = None # molecular charge
     spin: Optional[int] = None # molecular spin
@@ -340,9 +340,9 @@ def expanded_config_from_atoms(
     if resp_dipole is None:
         resp_dipole = atoms.info.get("resp_dipole_moment", None)
 
-    calc_resp_dipole = atoms.info.get("calc_resp_dipole_moments", None)
-    if calc_resp_dipole is None:
-        calc_resp_dipole = atoms.info.get("calc_resp_dipole_moment", None)
+    # calc_resp_dipole = atoms.info.get("calc_resp_dipole_moments", None)
+    # if calc_resp_dipole is None:
+    #     calc_resp_dipole = atoms.info.get("calc_resp_dipole_moment", None)
     
     # Atomic partial charges and spins
     # All charges and spins given in atomic units
@@ -352,8 +352,8 @@ def expanded_config_from_atoms(
     mulliken_charges = atoms.arrays.get("mulliken_partial_charges", np.zeros(len(atoms)))
     mulliken_spins = atoms.arrays.get("mulliken_partial_spins", np.zeros(len(atoms)))
     resp_charges = atoms.arrays.get("resp_partial_charges", np.zeros(len(atoms)))
-    nbo_charges = atoms.arrays.get("nbo_partial_charges", np.zeros(len(atoms)))
-    nbo_spins = atoms.arrays.get("nbo_partial_spins", np.zeros(len(atoms)))
+    # nbo_charges = atoms.arrays.get("nbo_partial_charges", np.zeros(len(atoms)))
+    # nbo_spins = atoms.arrays.get("nbo_partial_spins", np.zeros(len(atoms)))
     
     total_charge = atoms.info.get(total_charge_key, 0)
     spin = atoms.info.get(spin_key, 0)
@@ -395,9 +395,9 @@ def expanded_config_from_atoms(
         charges = np.zeros(len(atomic_numbers))
         charges_weight = 0.0
         total_charge_weight = 0.0
-    if mulliken_spins is None and nbo_spins is None:
+    if mulliken_spins is None:
         mulliken_spins = np.zeros(len(atomic_numbers))
-        nbo_spins = np.zeros(len(atomic_numbers))
+        # nbo_spins = np.zeros(len(atomic_numbers))
         spins_weight = 0.0
         total_spin_weight = 0.0
 
@@ -411,13 +411,13 @@ def expanded_config_from_atoms(
         virials=virials,
         dipole=dipole,
         resp_dipole=resp_dipole,
-        calc_resp_dipole=calc_resp_dipole,
+        # calc_resp_dipole=calc_resp_dipole,
         charges=charges,
         mulliken_partial_charges=mulliken_charges,
         mulliken_partial_spins=mulliken_spins,
         resp_partial_charges=resp_charges,
-        nbo_partial_charges=nbo_charges,
-        nbo_partial_spins=nbo_spins,
+        # nbo_partial_charges=nbo_charges,
+        # nbo_partial_spins=nbo_spins,
         total_charge=total_charge,
         spin=spin,
         weight=weight,
@@ -585,14 +585,14 @@ def save_expanded_configurations_as_HDF5(configurations: ExpandedConfigurations,
         
         subgroup["dipole"] = write_value(config.dipole)
         subgroup["resp_dipole"] = write_value(config.resp_dipole)
-        subgroup["calc_resp_dipole"] = write_value(config.calc_resp_dipole)
+        # subgroup["calc_resp_dipole"] = write_value(config.calc_resp_dipole)
         
         subgroup["charges"] = write_value(config.charges)
         subgroup["mulliken_partial_charges"] = write_value(config.mulliken_partial_charges)
         subgroup["mulliken_partial_spins"] = write_value(config.mulliken_partial_spins)
         subgroup["resp_partial_charges"] = write_value(config.resp_partial_charges)
-        subgroup["nbo_partial_charges"] = write_value(config.nbo_partial_charges)
-        subgroup["nbo_partial_spins"] = write_value(config.nbo_partial_spins)
+        # subgroup["nbo_partial_charges"] = write_value(config.nbo_partial_charges)
+        # subgroup["nbo_partial_spins"] = write_value(config.nbo_partial_spins)
 
         subgroup["total_charge"] = write_value(config.total_charge)
         subgroup["spin"] = write_value(config.spin)

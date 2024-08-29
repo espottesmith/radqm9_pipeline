@@ -224,7 +224,7 @@ def sparse_trajectory(data: list):
                 resp_partial_charges = [pair['resp_partial_charges'][0], pair['resp_partial_charges'][-1]]
                 dipole_moments = [pair['dipole_moments'][0], pair['dipole_moments'][-1]]
                 resp_dipole_moments = [pair['resp_dipole_moments'][0], pair['resp_dipole_moments'][-1]]
-                calc_dipole_moments_resp = [pair['calc_resp_dipole_moments'][0], pair['calc_resp_dipole_moments'][-1]]
+                # calc_dipole_moments_resp = [pair['calc_resp_dipole_moments'][0], pair['calc_resp_dipole_moments'][-1]]
             else:
                 force_dict = average_force_trajectory(pair)
                 max_index = max(force_dict, key=force_dict.get)
@@ -237,7 +237,7 @@ def sparse_trajectory(data: list):
                 resp_partial_charges = [pair['resp_partial_charges'][0], pair['resp_partial_charges'][max_index], pair['resp_partial_charges'][-1]]
                 dipole_moments = [pair['dipole_moments'][0], pair['dipole_moments'][max_index], pair['dipole_moments'][-1]]
                 resp_dipole_moments = [pair['resp_dipole_moments'][0], pair['resp_dipole_moments'][max_index], pair['resp_dipole_moments'][-1]]
-                calc_dipole_moments_resp = [pair['calc_resp_dipole_moments'][0], pair['calc_resp_dipole_moments'][max_index], pair['calc_resp_dipole_moments'][-1]]
+                # calc_dipole_moments_resp = [pair['calc_resp_dipole_moments'][0], pair['calc_resp_dipole_moments'][max_index], pair['calc_resp_dipole_moments'][-1]]
 
             del pair["energy"]
 
@@ -249,7 +249,7 @@ def sparse_trajectory(data: list):
             pair['resp_partial_charges'] = resp_partial_charges
             pair['dipole_moments'] = dipole_moments
             pair['resp_dipole_moments'] = resp_dipole_moments
-            pair['calc_resp_dipole_moments'] = calc_dipole_moments_resp
+            # pair['calc_resp_dipole_moments'] = calc_dipole_moments_resp
 
         except ValueError:
             continue
@@ -318,7 +318,7 @@ def build_atoms(data: dict,
         atoms.arrays['resp_partial_charges']=np.array(data['resp_partial_charges'][i])
         atoms.info['dipole_moments'] = np.array(data['dipole_moments'][i])
         atoms.info['resp_dipole_moments'] = np.array(data['resp_dipole_moments'][i])
-        atoms.info['calc_resp_dipole_moments']=np.array(data['calc_resp_dipole_moments'][i])
+        # atoms.info['calc_resp_dipole_moments']=np.array(data['calc_resp_dipole_moments'][i])
         atoms.info['weight'] = data['weight']
         
         if energy is not None:
@@ -640,7 +640,7 @@ if __name__ == "__main__":
 
     dumpfn(missing_data, os.path.join(base_path, "missing_data.json"))
 
-    generate_resp_dipole(r_data)
+    # generate_resp_dipole(r_data)
 
     resolve_mulliken_partial_spins(r_data)
 
@@ -818,7 +818,6 @@ if __name__ == "__main__":
 
     file = os.path.join(minimal_doublet_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_doublet_ood.xyz')
     ase.io.write(file, doublet_ood, format="extxyz")
-
 
     # Neutral
     minimal_neutral_path = os.path.join(minimal_data_path, "neutral")
@@ -1068,7 +1067,7 @@ if __name__ == "__main__":
 
     for ii, frac in enumerate(fractions):
         chunk_file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240807_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_minimal[ii],format="extxyz")
+        ase.io.write(chunk_file, cd_full[ii],format="extxyz")
         
         for key in cd_cs:
             chunk_file = os.path.join(full_chargespin_path, 'radqm9_65_10_25_trajectory_full_data_20240807_train_subset_' + key + f'_{frac}.xyz')

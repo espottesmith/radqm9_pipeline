@@ -109,9 +109,9 @@ def resolve_partial_spins(data: list):
             if item['mulliken_partial_spins'] is None or None in item['mulliken_partial_spins']:
                 item['mulliken_partial_spins'] = np.zeros(charge_array_shape, dtype=float).tolist()
 
-            if item['nbo_partial_spins'] is None or None in item['nbo_partial_spins']:
-                if item['nbo_partial_charges'] is not None and None not in item['nbo_partial_charges']:
-                    item['nbo_partial_spins'] = np.zeros(charge_array_shape, dtype=float).tolist()
+            # if item['nbo_partial_spins'] is None or None in item['nbo_partial_spins']:
+            #     if item['nbo_partial_charges'] is not None and None not in item['nbo_partial_charges']:
+            #         item['nbo_partial_spins'] = np.zeros(charge_array_shape, dtype=float).tolist()
 
 
 def force_magnitude_filter(cutoff: float,
@@ -196,6 +196,16 @@ def convert_energy_forces(data: list):
             atom_arr.append(comp_arr)
         item['gradient'] = atom_arr
 
+        forces = item["precise_gradient"]
+        atom_arr = []
+        for atom in forces:
+            comp_arr = []
+            for component in atom:
+                new_component = component * 51.42208619083232
+                comp_arr.append(new_component)
+            atom_arr.append(comp_arr)
+        item['precise_gradient'] = atom_arr
+
 
 def molecule_weight(data: list, elements_dict: dict[str, float]):
     """
@@ -258,23 +268,23 @@ def build_atoms(data: dict,
     atoms.arrays['mulliken_partial_spins'] = np.array(data['mulliken_partial_spins'])
     atoms.arrays['resp_partial_charges'] = np.array(data['resp_partial_charges'])
     
-    if (
-        data["nbo_partial_charges"] is not None
-        and None not in data["nbo_partial_charges"]
-        and len(data["nbo_partial_charges"]) == length
-    ):
-        atoms.arrays['nbo_partial_charges'] = np.array(data['nbo_partial_charges'])
+    # if (
+    #     data["nbo_partial_charges"] is not None
+    #     and None not in data["nbo_partial_charges"]
+    #     and len(data["nbo_partial_charges"]) == length
+    # ):
+    #     atoms.arrays['nbo_partial_charges'] = np.array(data['nbo_partial_charges'])
 
-    if (
-        data["nbo_partial_spins"] is not None
-        and None not in data["nbo_partial_spins"]
-        and len(data["nbo_partial_spins"]) == length
-    ):
-        atoms.arrays['nbo_partial_spins'] = np.array(data['nbo_partial_spins'])
+    # if (
+    #     data["nbo_partial_spins"] is not None
+    #     and None not in data["nbo_partial_spins"]
+    #     and len(data["nbo_partial_spins"]) == length
+    # ):
+    #     atoms.arrays['nbo_partial_spins'] = np.array(data['nbo_partial_spins'])
 
     atoms.info['dipole_moment'] = np.array(data['dipole_moment'])
     atoms.info['resp_dipole_moment'] = np.array(data['resp_dipole_moment'])
-    atoms.info['calc_resp_dipole_moment'] = np.array(data['calc_resp_dipole_moment'])
+    # atoms.info['calc_resp_dipole_moment'] = np.array(data['calc_resp_dipole_moment'])
     atoms.info['weight'] = data['weight']
         
     if energy is not None:
@@ -330,7 +340,7 @@ def build_atoms_minimal(data: dict,
 def build_atoms_iterator(
     data: list,
     energy: str = "energy",
-    forces: str = "gradient",
+    forces: str = "precise_gradient",
     charge:str = "charge",
     spin:str = "spin"
 ):
@@ -350,7 +360,7 @@ def build_atoms_iterator(
 def build_minimal_atoms_iterator(
     data: list,
     energy: str = "energy",
-    forces: str = "gradient",
+    forces: str = "precise_gradient",
     charge:str = "charge",
     spin:str = "spin"
 ):
@@ -484,10 +494,10 @@ if __name__ == "__main__":
     for entry in tqdm(
         force_store.query(
             {
-                "precise_forces": {  # Tossing out 7513 datapoints; we can live with that
+                "precise_forces": {  # Tossing out 7513 datapoints
                     "$ne": None
                 },
-                "precise_forces.0": {
+                "precise_forces.0": {  # Tossing out 6 datapoints
                     "$exists": True
                 },
             },
@@ -504,8 +514,8 @@ if __name__ == "__main__":
                 "resp_partial_charges": 1,
                 "dipole_moment": 1,
                 "resp_dipole_moment": 1,
-                "nbo_partial_charges": 1,  # OPTIONAL
-                "nbo_partial_spins": 1,  # OPTIONAL
+                # "nbo_partial_charges": 1,  # OPTIONAL
+                # "nbo_partial_spins": 1,  # OPTIONAL
                 "precise_forces": 1,
                 "solvent": 1,
             }
@@ -527,8 +537,8 @@ if __name__ == "__main__":
         item['resp_partial_charges'] = entry['resp_partial_charges']
         item['dipole_moment'] = entry['dipole_moment']
         item['resp_dipole_moment'] = entry['resp_dipole_moment']
-        item['nbo_partial_charges'] = entry['nbo_partial_charges']
-        item['nbo_partial_spins'] = entry['nbo_partial_spins']
+        # item['nbo_partial_charges'] = entry['nbo_partial_charges']
+        # item['nbo_partial_spins'] = entry['nbo_partial_spins']
         
         if entry['solvent'] == "NONE":
             item['solvent'] = 'vacuum'
@@ -563,7 +573,7 @@ if __name__ == "__main__":
 
         data.append(item)
 
-    generate_resp_dipole(data)
+    # generate_resp_dipole(data)
 
     resolve_partial_spins(data)
 
@@ -588,20 +598,20 @@ if __name__ == "__main__":
         elif solv == 'SMD':
             solvent_data.append(item)
 
-    # dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
-    # dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
+    dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
+    dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
-    vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
-    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
+    # vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data.json"))
+    # solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data.json"))
 
     vacuum_data, vacuum_ood = filter_broken_graphs(vacuum_data)
     solvent_data, solvent_ood = filter_broken_graphs(solvent_data)
 
-    # dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
-    # dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+    dumpfn(vacuum_data, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
+    dumpfn(solvent_data, os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
 
-    # dumpfn(vacuum_ood, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
-    # dumpfn(solvent_ood, os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
+    dumpfn(vacuum_ood, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
+    dumpfn(solvent_ood, os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
 
     vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
     solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
@@ -690,11 +700,11 @@ if __name__ == "__main__":
     # Minimal build
     vac_build_minimal = dict()
     for split in vac_data:
-        vac_build_minimal[split] = build_minimal_atoms_iterator(vac_data[split], forces="precise_gradient")
+        vac_build_minimal[split] = build_minimal_atoms_iterator(vac_data[split])
         
     create_dataset(vac_build_minimal, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807', vacuum_minimal_path)
 
-    vac_ood_minimal = build_minimal_atoms_iterator(vacuum_ood, forces="precise_gradient")
+    vac_ood_minimal = build_minimal_atoms_iterator(vacuum_ood)
     file = os.path.join(vacuum_minimal_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_ood.xyz')
     ase.io.write(file, vac_ood_minimal, format="extxyz")
 
@@ -930,11 +940,11 @@ if __name__ == "__main__":
     # Full build
     vac_build_full = dict()
     for split in vac_data:
-        vac_build_full[split] = build_atoms_iterator(vac_data[split], forces="precise_gradient")
+        vac_build_full[split] = build_atoms_iterator(vac_data[split])
         
     create_dataset(vac_build_full, 'radqm9_65_10_25_sp_vacuum_full_data_20240807', vacuum_full_path)
 
-    vac_ood_full = build_atoms_iterator(vacuum_ood, forces="precise_gradient")
+    vac_ood_full = build_atoms_iterator(vacuum_ood)
     file = os.path.join(vacuum_full_path, 'radqm9_65_10_25_sp_vacuum_full_data_20240807_ood.xyz')
     ase.io.write(file, vac_ood_full, format="extxyz")
 
@@ -1252,11 +1262,11 @@ if __name__ == "__main__":
     # Minimal build
     smd_build_minimal = dict()
     for split in smd_data:
-        smd_build_minimal[split] = build_minimal_atoms_iterator(smd_data[split], forces="precise_gradient")
+        smd_build_minimal[split] = build_minimal_atoms_iterator(smd_data[split])
         
     create_dataset(smd_build_minimal, 'radqm9_65_10_25_sp_smd_minimal_data_20240807', smd_minimal_path)
 
-    smd_ood_minimal = build_minimal_atoms_iterator(solvent_ood, forces="precise_gradient")
+    smd_ood_minimal = build_minimal_atoms_iterator(solvent_ood)
     file = os.path.join(smd_minimal_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_ood.xyz')
     ase.io.write(file, smd_ood_minimal, format="extxyz")
 
@@ -1492,11 +1502,11 @@ if __name__ == "__main__":
     # Full build
     smd_build_full = dict()
     for split in smd_data:
-        smd_build_full[split] = build_atoms_iterator(smd_data[split], forces="precise_gradient")
+        smd_build_full[split] = build_atoms_iterator(smd_data[split])
         
     create_dataset(smd_build_full, 'radqm9_65_10_25_sp_smd_full_data_20240807', smd_full_path)
 
-    smd_ood_full = build_atoms_iterator(solvent_ood, forces="precise_gradient")
+    smd_ood_full = build_atoms_iterator(solvent_ood)
     file = os.path.join(smd_full_path, 'radqm9_65_10_25_sp_smd_full_data_20240807_ood.xyz')
     ase.io.write(file, smd_ood_full, format="extxyz")
 
