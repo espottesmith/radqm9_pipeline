@@ -171,7 +171,7 @@ def filter_charges(data: list, charge: list):
 def convert_energy_forces(data: list):
     for item in tqdm(data):
         energy = item['energy']
-        item['energy'] = [x*27.2114 for x in energy]
+        item['energy'] = [x * 27.2114 for x in energy]
 
         forces = item['gradients']
         traj_arr = []
@@ -195,7 +195,7 @@ def average_force_trajectory(pair):
     for i in range(len(pair['gradients'])):
         temp = []
         for atom in pair['gradients'][i]:
-            res = np.sqrt(sum([j**2 for j in atom]))
+            res = np.sqrt(sum([j ** 2 for j in atom]))
             temp.append(res)
         forces[i] = np.mean(temp)
     del forces[0]
@@ -305,7 +305,6 @@ def build_atoms(data: dict,
         atoms.info : global variables
         atoms.array : variables for individual atoms
         
-    Both "energy" and "forces" are the dict strings in data.
     """
     atom_list = []
     for i in range(len(data['geometries'])):
@@ -313,62 +312,18 @@ def build_atoms(data: dict,
             symbols=data['species'],
             positions=data['geometries'][i]
         )
-        atoms.arrays['mulliken_partial_charges']=np.array(data['mulliken_partial_charges'][i])
-        atoms.arrays['mulliken_partial_spins']=np.array(data['mulliken_partial_spins'][i])
-        atoms.arrays['resp_partial_charges']=np.array(data['resp_partial_charges'][i])
+        atoms.arrays['mulliken_partial_charges'] = np.array(data['mulliken_partial_charges'][i])
+        atoms.arrays['mulliken_partial_spins'] = np.array(data['mulliken_partial_spins'][i])
+        atoms.arrays['resp_partial_charges'] = np.array(data['resp_partial_charges'][i])
         atoms.info['dipole_moments'] = np.array(data['dipole_moments'][i])
         atoms.info['resp_dipole_moments'] = np.array(data['resp_dipole_moments'][i])
-        # atoms.info['calc_resp_dipole_moments']=np.array(data['calc_resp_dipole_moments'][i])
+        # atoms.info['calc_resp_dipole_moments'] = np.array(data['calc_resp_dipole_moments'][i])
         atoms.info['weight'] = data['weight']
         
         if energy is not None:
-            atoms.info['energy'] = data[energy][i]
+            atoms.info['REF_energy'] = data[energy][i]
         if forces is not None:
-            atoms.arrays['forces'] = np.array(data[forces][i])
-        if charge is not None:
-             atoms.info['charge'] = data[charge]
-        if spin is not None:
-            atoms.info['spin'] = data[spin]
-        atoms.info['mol_id'] = data['mol_id']
-        if i == 0:
-            atoms.info['position_type'] = 'start'
-        if i == 1:
-            if data['charge_spin'] == '0_1':
-                atoms.info['position_type'] = 'end'
-            else:
-                atoms.info['position_type'] = 'middle'
-        if i == 2:
-            atoms.info['position_type'] = 'end'
-        atom_list.append(atoms)
-    return atom_list
-
-
-def build_atoms_minimal(data: dict,
-                energy: str = None,
-                forces: str = None,
-                charge:str = None,
-                spin:str = None
-                ) -> ase.Atoms:
-    """ 
-    Populate Atoms class with atoms in molecule.
-        atoms.info : global variables
-        atoms.array : variables for individual atoms
-        
-    Both "energy" and "forces" are the dict strings in data.
-    """
-    atom_list = []
-    for i in range(len(data['geometries'])):
-        atoms = ase.atoms.Atoms(
-            symbols=data['species'],
-            positions=data['geometries'][i]
-        )
-        
-        atoms.info['weight'] = data['weight']
-
-        if energy is not None:
-            atoms.info['energy'] = data[energy][i]
-        if forces is not None:
-            atoms.arrays['forces'] = np.array(data[forces][i])
+            atoms.arrays['REF_forces'] = np.array(data[forces][i])
         if charge is not None:
              atoms.info['charge'] = data[charge]
         if spin is not None:
@@ -405,27 +360,6 @@ def build_atoms_iterator(
         atoms=build_atoms(point, energy=energy, forces=forces, charge=charge, spin=spin)
         data_set+=atoms
     return data_set
-
-
-def build_minimal_atoms_iterator(
-    data: list,
-    energy: str = "energy",
-    forces: str = "gradients",
-    charge:str = "charge",
-    spin:str = "spin"
-):
-    """
-    This method assumes the data has been validated. This will create ASE atoms to be written.
-    
-    The input needs to be a list of lists that contain the event dictionaries. Each inner list needs to represent all the events for a single
-    mol_id.
-    """
-    data_set=[]
-    for point in tqdm(data):
-        atoms=build_atoms_minimal(point, energy=energy, forces=forces, charge=charge, spin=spin)
-        data_set+=atoms
-    return data_set
-
 
 
 def create_dataset(data: dict,
@@ -541,8 +475,7 @@ def filter_broken_graphs(data: list):
 if __name__ == "__main__":
 
     base_path = ""
-    full_data_path = os.path.join(base_path, "full")
-    minimal_data_path = os.path.join(base_path, "minimal")
+    full_data_path = base_path
 
     elements_dict = read_elements('/global/home/users/ewcspottesmith/software/radqm9_pipeline/src/radqm9_pipeline/elements/elements.pkl')
 
@@ -674,11 +607,12 @@ if __name__ == "__main__":
     # Cleaning for memory
     del r_data
 
-    train_mass = ['152.037'] # EVAN WILL NEED TO ADJUST THE MASSES OF INITIAL POINTS FOR NEW DATA
+    train_mass = ['152.037']
     test_mass = ['144.092']
     val_mass = ['143.108']
 
-    train = sld['152.037'] # trackers for dataset sizes
+    # trackers for dataset sizes
+    train = sld['152.037']
     test = sld['144.092']
     val = sld['143.108']
 
@@ -716,197 +650,6 @@ if __name__ == "__main__":
         for mass in masses:
             for mpoint in wtd[mass]:
                 data[split].append(mpoint)
-
-    # Minimal build
-    build_minimal = dict()
-    for split in data:
-        build_minimal[split] = build_minimal_atoms_iterator(data[split], energy="energies")
-        
-    create_dataset(build_minimal, 'radqm9_65_10_25_trajectory_minimal_data_20240807', minimal_data_path)
-
-    ood_minimal = build_minimal_atoms_iterator(ood, energy="energies")
-    file = os.path.join(minimal_data_path, 'radqm9_65_10_25_trajectory_minimal_data_20240807_ood.xyz')
-    ase.io.write(file, ood_minimal, format="extxyz")
-
-    # Charge/spin subsets
-    train_cs_dict = {}
-    for item in tqdm(build_minimal['train']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            train_cs_dict[key].append(item)
-        except KeyError:
-            train_cs_dict[key] = [item]
-
-    val_cs_dict = {}
-    for item in tqdm(build_minimal['val']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            val_cs_dict[key].append(item)
-        except KeyError:
-            val_cs_dict[key] = [item]
-
-    test_cs_dict = {}
-    for item in tqdm(build_minimal['test']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            test_cs_dict[key].append(item)
-        except KeyError:
-            test_cs_dict[key] = [item]
-
-    ood_cs_dict = {}
-    for item in tqdm(ood_minimal):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            ood_cs_dict[key].append(item)
-        except KeyError:
-            ood_cs_dict[key] = [item]
-
-    # Split by charge/spin pair
-    # Use this for relative energies
-    minimal_chargespin_path = os.path.join(minimal_data_path, "by_charge_spin")
-    if not os.path.exists(minimal_chargespin_path):
-        os.mkdir(minimal_chargespin_path)
-
-    for key in test_cs_dict:
-        file = os.path.join(minimal_chargespin_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_train_'+key+'.xyz')
-        ase.io.write(file, train_cs_dict[key], format="extxyz")
-        
-        file = os.path.join(minimal_chargespin_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_val_'+key+'.xyz')
-        ase.io.write(file, val_cs_dict[key],format="extxyz")
-        
-        file = os.path.join(minimal_chargespin_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_test_'+key+'.xyz')
-        ase.io.write(file, test_cs_dict[key],format="extxyz")
-
-        if key in ood_cs_dict:
-            file = os.path.join(minimal_chargespin_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_ood_'+key+'.xyz')
-            ase.io.write(file, ood_cs_dict[key],format="extxyz")
-
-    # Doublet
-    minimal_doublet_path = os.path.join(minimal_data_path, "doublet")
-    if not os.path.exists(minimal_doublet_path):
-        os.mkdir(minimal_doublet_path)
-
-    doublet_train = []
-    doublet_val = []
-    doublet_test = []
-    doublet_ood = []
-
-    for item in tqdm(build_minimal['train']):
-        if item.info['spin'] == 2:
-            doublet_train.append(item)
-
-    for item in tqdm(build_minimal['val']):
-        if item.info['spin'] == 2:
-            doublet_val.append(item)
-
-    for item in tqdm(build_minimal['test']):
-        if item.info['spin'] == 2:
-            doublet_test.append(item)
-
-    for item in tqdm(ood_minimal):
-        if item.info['spin'] == 2:
-            doublet_ood.append(item)
-
-    file = os.path.join(minimal_doublet_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_doublet_train.xyz')
-    ase.io.write(file, doublet_train, format="extxyz")
-    
-    file = os.path.join(minimal_doublet_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_doublet_val.xyz')
-    ase.io.write(file, doublet_val, format="extxyz")
-    
-    file = os.path.join(minimal_doublet_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_doublet_test.xyz')
-    ase.io.write(file, doublet_test, format="extxyz")
-
-    file = os.path.join(minimal_doublet_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_doublet_ood.xyz')
-    ase.io.write(file, doublet_ood, format="extxyz")
-
-    # Neutral
-    minimal_neutral_path = os.path.join(minimal_data_path, "neutral")
-    if not os.path.exists(minimal_neutral_path):
-        os.mkdir(minimal_neutral_path)
-
-    neutral_train = []
-    neutral_val = []
-    neutral_test = []
-    neutral_ood = []
-
-    for item in tqdm(build_minimal['train']):
-        if item.info['charge'] == 0:
-            neutral_train.append(item)
-
-    for item in tqdm(build_minimal['val']):
-        if item.info['charge'] == 0:
-            neutral_val.append(item)
-
-    for item in tqdm(build_minimal['test']):
-        if item.info['charge'] == 0:
-            neutral_test.append(item)
-
-    for item in tqdm(ood_minimal):
-        if item.info['charge'] == 0:
-            neutral_ood.append(item)
-
-    file = os.path.join(minimal_neutral_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_neutral_train.xyz')
-    ase.io.write(file, neutral_train, format="extxyz")
-    
-    file = os.path.join(minimal_neutral_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_neutral_val.xyz')
-    ase.io.write(file, neutral_val, format="extxyz")
-    
-    file = os.path.join(minimal_neutral_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_neutral_test.xyz')
-    ase.io.write(file, neutral_test, format="extxyz")
-
-    file = os.path.join(minimal_neutral_path,'radqm9_65_10_25_trajectory_minimal_data_20240807_neutral_ood.xyz')
-    ase.io.write(file, neutral_ood, format="extxyz")
-
-    fractions = [.01, .05, .1, .25, .5, .75]
-
-    wtd_minimal = weight_to_data_ase(build_minimal["train"])
-    cd_minimal = chunk_data(wtd_minimal, fractions)
-    
-    wtd_cs = dict()
-    cd_cs = dict()
-    for key in train_cs_dict:
-        wtd_cs[key] = weight_to_data_ase(train_cs_dict[key])
-        cd_cs[key] = chunk_data(wtd_cs[key], fractions)
-    
-    wtd_doublet = weight_to_data_ase(doublet_train)
-    cd_doublet = chunk_data(wtd_doublet, fractions)
-
-    wtd_neutral = weight_to_data_ase(neutral_train)
-    cd_neutral = chunk_data(wtd_neutral, fractions)
-
-    for ii, frac in enumerate(fractions):
-        chunk_file = os.path.join(minimal_data_path, 'radqm9_65_10_25_trajectory_minimal_data_20240807_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_minimal[ii],format="extxyz")
-        
-        for key in cd_cs:
-            chunk_file = os.path.join(minimal_chargespin_path, 'radqm9_65_10_25_trajectory_minimal_data_20240807_train_subset_' + key + f'_{frac}.xyz')
-            ase.io.write(chunk_file, cd_cs[key][ii], format="extxyz")
-            
-        chunk_file = os.path.join(minimal_doublet_path, 'radqm9_65_10_25_trajectory_minimal_data_20240807_doublet_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_doublet[ii],format="extxyz")
-        
-        chunk_file = os.path.join(minimal_neutral_path, 'radqm9_65_10_25_trajectory_minimal_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")
-
-    # Cleanup for memory
-    del build_minimal
-    del ood_minimal
-    del train_cs_dict
-    del val_cs_dict
-    del test_cs_dict
-    del ood_cs_dict
-    del doublet_train
-    del doublet_val
-    del doublet_test
-    del doublet_ood
-    del neutral_train
-    del neutral_val
-    del neutral_test
-    del neutral_ood
-    del wtd_minimal
-    del wtd_cs
-    del wtd_doublet
-    del wtd_neutral
 
     # Full build
     build_full = dict()
@@ -1078,6 +821,3 @@ if __name__ == "__main__":
         
         chunk_file = os.path.join(full_neutral_path, 'radqm9_65_10_25_trajectory_full_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")
-
-    # TODO: 
-    # - Calculate relative energies & regenerate

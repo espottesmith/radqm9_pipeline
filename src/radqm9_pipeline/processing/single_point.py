@@ -19,7 +19,6 @@ import networkx as nx
 from radqm9_pipeline.elements import read_elements
 
 
-
 def filter_duplicate_and_missing_data(data: list):
     filtered_data = []
     
@@ -288,49 +287,13 @@ def build_atoms(data: dict,
     atoms.info['weight'] = data['weight']
         
     if energy is not None:
-        atoms.info['energy'] = data[energy]
+        atoms.info['REF_energy'] = data[energy]
     if forces is not None:
-        atoms.arrays['forces'] = np.array(data[forces])
+        atoms.arrays['REF_forces'] = np.array(data[forces])
     if charge is not None:
             atoms.info['charge'] = data[charge]
     if spin is not None:
         atoms.info['spin'] = data[spin]
-    atoms.info['mol_id'] = data['mol_id']
-    atoms.info['sp_config_type'] = data['sp_config_type']
-
-    return atoms
-
-
-def build_atoms_minimal(data: dict,
-                energy: str = None,
-                forces: str = None,
-                charge:str = None,
-                spin:str = None
-                ) -> ase.Atoms:
-    """ 
-    Populate Atoms class with atoms in molecule.
-        atoms.info : global variables
-        atoms.array : variables for individual atoms
-        
-    Both "energy" and "forces" are the dict strings in data.
-    """
-
-    atoms = ase.atoms.Atoms(
-        symbols=data['species'],
-        positions=data['geometry']
-    )
-        
-    atoms.info['weight'] = data['weight']
-
-    if energy is not None:
-        atoms.info['energy'] = data[energy]
-    if forces is not None:
-        atoms.arrays['forces'] = np.array(data[forces])
-    if charge is not None:
-        atoms.info['charge'] = data[charge]
-    if spin is not None:
-        atoms.info['spin'] = data[spin]
-
     atoms.info['mol_id'] = data['mol_id']
     atoms.info['sp_config_type'] = data['sp_config_type']
 
@@ -355,27 +318,6 @@ def build_atoms_iterator(
         atoms=build_atoms(point, energy=energy, forces=forces, charge=charge, spin=spin)
         data_set.append(atoms)
     return data_set
-
-
-def build_minimal_atoms_iterator(
-    data: list,
-    energy: str = "energy",
-    forces: str = "precise_gradient",
-    charge:str = "charge",
-    spin:str = "spin"
-):
-    """
-    This method assumes the data has been validated. This will create ASE atoms to be written.
-    
-    The input needs to be a list of lists that contain the event dictionaries. Each inner list needs to represent all the events for a single
-    mol_id.
-    """
-    data_set=[]
-    for point in tqdm(data):
-        atoms = build_atoms_minimal(point, energy=energy, forces=forces, charge=charge, spin=spin)
-        data_set.append(atoms)
-    return data_set
-
 
 
 def create_dataset(data: dict,
@@ -459,21 +401,15 @@ if __name__ == "__main__":
     base_path = ""
 
     vacuum_data_path = os.path.join(base_path, "vacuum")
-    vacuum_minimal_path = os.path.join(vacuum_data_path, "minimal")
-    vacuum_full_path = os.path.join(vacuum_data_path, "full")
+    vacuum_full_path = vacuum_data_path
 
     smd_data_path = os.path.join(base_path, "smd")
-    smd_minimal_path = os.path.join(smd_data_path, "minimal")
-    smd_full_path = os.path.join(smd_data_path, "full")
+    smd_full_path = smd_data_path
 
     for path in [
         base_path,
         vacuum_data_path,
         smd_data_path,
-        vacuum_minimal_path,
-        vacuum_full_path,
-        smd_minimal_path,
-        smd_full_path
     ]:
         if not os.path.exists(path):
             os.mkdir(path)
@@ -514,8 +450,8 @@ if __name__ == "__main__":
                 "resp_partial_charges": 1,
                 "dipole_moment": 1,
                 "resp_dipole_moment": 1,
-                # "nbo_partial_charges": 1,  # OPTIONAL
-                # "nbo_partial_spins": 1,  # OPTIONAL
+                # "nbo_partial_charges": 1,
+                # "nbo_partial_spins": 1,
                 "precise_forces": 1,
                 "solvent": 1,
             }
@@ -577,7 +513,7 @@ if __name__ == "__main__":
 
     resolve_partial_spins(data)
 
-    # dumpfn(data, os.path.join(base_path, "raw_sp_data.json"))
+    dumpfn(data, os.path.join(base_path, "raw_sp_data.json"))
 
     data = filter_duplicate_and_missing_data(data)
 
@@ -613,10 +549,10 @@ if __name__ == "__main__":
     dumpfn(vacuum_ood, os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
     dumpfn(solvent_ood, os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
 
-    vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
-    solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
-    vacuum_ood = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
-    solvent_ood = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
+    # vacuum_data = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_postgraph.json"))
+    # solvent_data = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_postgraph.json"))
+    # vacuum_ood = loadfn(os.path.join(vacuum_data_path, "filtered_vacuum_sp_data_ood.json"))
+    # solvent_ood = loadfn(os.path.join(smd_data_path, "filtered_smd_sp_data_ood.json"))
 
     # Vacuum data
 
@@ -696,246 +632,6 @@ if __name__ == "__main__":
         for mass in masses:
             for mpoint in wtd[mass]:
                 vac_data[split].append(mpoint)
-
-    # Minimal build
-    vac_build_minimal = dict()
-    for split in vac_data:
-        vac_build_minimal[split] = build_minimal_atoms_iterator(vac_data[split])
-        
-    create_dataset(vac_build_minimal, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807', vacuum_minimal_path)
-
-    vac_ood_minimal = build_minimal_atoms_iterator(vacuum_ood)
-    file = os.path.join(vacuum_minimal_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_ood.xyz')
-    ase.io.write(file, vac_ood_minimal, format="extxyz")
-
-    # Charge/spin subsets
-    vac_train_cs_dict = {}
-    for item in tqdm(vac_build_minimal['train']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            vac_train_cs_dict[key].append(item)
-        except KeyError:
-            vac_train_cs_dict[key] = [item]
-
-    vac_val_cs_dict = {}
-    for item in tqdm(vac_build_minimal['val']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            vac_val_cs_dict[key].append(item)
-        except KeyError:
-            vac_val_cs_dict[key] = [item]
-
-    vac_test_cs_dict = {}
-    for item in tqdm(vac_build_minimal['test']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            vac_test_cs_dict[key].append(item)
-        except KeyError:
-            vac_test_cs_dict[key] = [item]
-
-    vac_ood_cs_dict = {}
-    for item in tqdm(vac_ood_minimal):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            vac_ood_cs_dict[key].append(item)
-        except KeyError:
-            vac_ood_cs_dict[key] = [item]
-
-    # Split by charge/spin pair
-    # Use this for relative energies
-    vacuum_minimal_chargespin_path = os.path.join(vacuum_minimal_path, "by_charge_spin")
-    if not os.path.exists(vacuum_minimal_chargespin_path):
-        os.mkdir(vacuum_minimal_chargespin_path)
-
-    for key in vac_test_cs_dict:
-        file = os.path.join(vacuum_minimal_chargespin_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_train_'+key+'.xyz')
-        ase.io.write(file, vac_train_cs_dict[key], format="extxyz")
-        
-        file = os.path.join(vacuum_minimal_chargespin_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_val_'+key+'.xyz')
-        ase.io.write(file, vac_val_cs_dict[key], format="extxyz")
-        
-        file = os.path.join(vacuum_minimal_chargespin_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_test_'+key+'.xyz')
-        ase.io.write(file, vac_test_cs_dict[key], format="extxyz")
-
-        if key in vac_ood_cs_dict:
-            file = os.path.join(vacuum_minimal_chargespin_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_ood_'+key+'.xyz')
-            ase.io.write(file, vac_ood_cs_dict[key], format="extxyz")
-
-    # Singlet
-    vacuum_minimal_singlet_path = os.path.join(vacuum_minimal_path, "singlet")
-    if not os.path.exists(vacuum_minimal_singlet_path):
-        os.mkdir(vacuum_minimal_singlet_path)
-
-    vac_singlet_train = []
-    vac_singlet_val = []
-    vac_singlet_test = []
-    vac_singlet_ood = []
-
-    for item in tqdm(vac_build_minimal['train']):
-        if item.info['spin'] == 1:
-            vac_singlet_train.append(item)
-
-    for item in tqdm(vac_build_minimal['val']):
-        if item.info['spin'] == 1:
-            vac_singlet_val.append(item)
-
-    for item in tqdm(vac_build_minimal['test']):
-        if item.info['spin'] == 1:
-            vac_singlet_test.append(item)
-
-    for item in tqdm(vac_ood_minimal):
-        if item.info['spin'] == 1:
-            vac_singlet_ood.append(item)
-
-    file = os.path.join(vacuum_minimal_singlet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_singlet_train.xyz')
-    ase.io.write(file, vac_singlet_train, format="extxyz")
-    
-    file = os.path.join(vacuum_minimal_singlet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_singlet_val.xyz')
-    ase.io.write(file, vac_singlet_val, format="extxyz")
-    
-    file = os.path.join(vacuum_minimal_singlet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_singlet_test.xyz')
-    ase.io.write(file, vac_singlet_test, format="extxyz")
-
-    file = os.path.join(vacuum_minimal_singlet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_singlet_ood.xyz')
-    ase.io.write(file, vac_singlet_ood, format="extxyz")
-
-    # Doublet
-    vacuum_minimal_doublet_path = os.path.join(vacuum_minimal_path, "doublet")
-    if not os.path.exists(vacuum_minimal_doublet_path):
-        os.mkdir(vacuum_minimal_doublet_path)
-
-    vac_doublet_train = []
-    vac_doublet_val = []
-    vac_doublet_test = []
-    vac_doublet_ood = []
-
-    for item in tqdm(vac_build_minimal['train']):
-        if item.info['spin'] == 2:
-            vac_doublet_train.append(item)
-
-    for item in tqdm(vac_build_minimal['val']):
-        if item.info['spin'] == 2:
-            vac_doublet_val.append(item)
-
-    for item in tqdm(vac_build_minimal['test']):
-        if item.info['spin'] == 2:
-            vac_doublet_test.append(item)
-
-    for item in tqdm(vac_ood_minimal):
-        if item.info['spin'] == 2:
-            vac_doublet_ood.append(item)
-
-    file = os.path.join(vacuum_minimal_doublet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_doublet_train.xyz')
-    ase.io.write(file, vac_doublet_train, format="extxyz")
-    
-    file = os.path.join(vacuum_minimal_doublet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_doublet_val.xyz')
-    ase.io.write(file, vac_doublet_val, format="extxyz")
-    
-    file = os.path.join(vacuum_minimal_doublet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_doublet_test.xyz')
-    ase.io.write(file, vac_doublet_test, format="extxyz")
-
-    file = os.path.join(vacuum_minimal_doublet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_doublet_ood.xyz')
-    ase.io.write(file, vac_doublet_ood, format="extxyz")
-
-
-    # Neutral
-    vacuum_minimal_neutral_path = os.path.join(vacuum_minimal_path, "neutral")
-    if not os.path.exists(vacuum_minimal_neutral_path):
-        os.mkdir(vacuum_minimal_neutral_path)
-
-    vac_neutral_train = []
-    vac_neutral_val = []
-    vac_neutral_test = []
-    vac_neutral_ood = []
-
-    for item in tqdm(vac_build_minimal['train']):
-        if item.info['charge'] == 0:
-            vac_neutral_train.append(item)
-
-    for item in tqdm(vac_build_minimal['val']):
-        if item.info['charge'] == 0:
-            vac_neutral_val.append(item)
-
-    for item in tqdm(vac_build_minimal['test']):
-        if item.info['charge'] == 0:
-            vac_neutral_test.append(item)
-
-    for item in tqdm(vac_ood_minimal):
-        if item.info['charge'] == 0:
-            vac_neutral_ood.append(item)
-
-    file = os.path.join(vacuum_minimal_neutral_path,'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_neutral_train.xyz')
-    ase.io.write(file, vac_neutral_train, format="extxyz")
-    
-    file = os.path.join(vacuum_minimal_neutral_path,'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_neutral_val.xyz')
-    ase.io.write(file, vac_neutral_val, format="extxyz")
-    
-    file = os.path.join(vacuum_minimal_neutral_path,'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_neutral_test.xyz')
-    ase.io.write(file, vac_neutral_test, format="extxyz")
-
-    file = os.path.join(vacuum_minimal_neutral_path,'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_neutral_ood.xyz')
-    ase.io.write(file, vac_neutral_ood, format="extxyz")
-
-    fractions = [.01, .05, .1, .25, .5, .75]
-
-    wtd_minimal = weight_to_data_ase(vac_build_minimal["train"])
-    cd_minimal = chunk_data(wtd_minimal, fractions)
-    
-    wtd_cs = dict()
-    cd_cs = dict()
-    for key in vac_train_cs_dict:
-        wtd_cs[key] = weight_to_data_ase(vac_train_cs_dict[key])
-        cd_cs[key] = chunk_data(wtd_cs[key], fractions)
-
-    wtd_singlet = weight_to_data_ase(vac_singlet_train)
-    cd_singlet = chunk_data(wtd_singlet, fractions)
-
-    wtd_doublet = weight_to_data_ase(vac_doublet_train)
-    cd_doublet = chunk_data(wtd_doublet, fractions)
-
-    wtd_neutral = weight_to_data_ase(vac_neutral_train)
-    cd_neutral = chunk_data(wtd_neutral, fractions)
-
-    for ii, frac in enumerate(fractions):
-        chunk_file = os.path.join(vacuum_minimal_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_minimal[ii], format="extxyz")
-        
-        for key in cd_cs:
-            chunk_file = os.path.join(vacuum_minimal_chargespin_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_train_subset_' + key + f'_{frac}.xyz')
-            ase.io.write(chunk_file, cd_cs[key][ii], format="extxyz")
-
-        chunk_file = os.path.join(vacuum_minimal_singlet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_singlet_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_singlet[ii],format="extxyz")
-
-        chunk_file = os.path.join(vacuum_minimal_doublet_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_doublet_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_doublet[ii],format="extxyz")
-        
-        chunk_file = os.path.join(vacuum_minimal_neutral_path, 'radqm9_65_10_25_sp_vacuum_minimal_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")
-
-    # Cleanup for memory
-    del vac_build_minimal
-    del vac_ood_minimal
-    del vac_train_cs_dict
-    del vac_val_cs_dict
-    del vac_test_cs_dict
-    del vac_ood_cs_dict
-    del vac_singlet_train
-    del vac_singlet_val
-    del vac_singlet_test
-    del vac_singlet_ood
-    del vac_doublet_train
-    del vac_doublet_val
-    del vac_doublet_test
-    del vac_doublet_ood
-    del vac_neutral_train
-    del vac_neutral_val
-    del vac_neutral_test
-    del vac_neutral_ood
-    del wtd_minimal
-    del wtd_cs
-    del wtd_doublet
-    del wtd_neutral
 
     # Full build
     vac_build_full = dict()
@@ -1259,246 +955,6 @@ if __name__ == "__main__":
             for mpoint in wtd[mass]:
                 smd_data[split].append(mpoint)
 
-    # Minimal build
-    smd_build_minimal = dict()
-    for split in smd_data:
-        smd_build_minimal[split] = build_minimal_atoms_iterator(smd_data[split])
-        
-    create_dataset(smd_build_minimal, 'radqm9_65_10_25_sp_smd_minimal_data_20240807', smd_minimal_path)
-
-    smd_ood_minimal = build_minimal_atoms_iterator(solvent_ood)
-    file = os.path.join(smd_minimal_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_ood.xyz')
-    ase.io.write(file, smd_ood_minimal, format="extxyz")
-
-    # Charge/spin subsets
-    smd_train_cs_dict = {}
-    for item in tqdm(smd_build_minimal['train']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            smd_train_cs_dict[key].append(item)
-        except KeyError:
-            smd_train_cs_dict[key] = [item]
-
-    smd_val_cs_dict = {}
-    for item in tqdm(smd_build_minimal['val']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            smd_val_cs_dict[key].append(item)
-        except KeyError:
-            smd_val_cs_dict[key] = [item]
-
-    smd_test_cs_dict = {}
-    for item in tqdm(smd_build_minimal['test']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            smd_test_cs_dict[key].append(item)
-        except KeyError:
-            smd_test_cs_dict[key] = [item]
-
-    smd_ood_cs_dict = {}
-    for item in tqdm(smd_ood_minimal):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            smd_ood_cs_dict[key].append(item)
-        except KeyError:
-            smd_ood_cs_dict[key] = [item]
-
-    # Split by charge/spin pair
-    # Use this for relative energies
-    smd_minimal_chargespin_path = os.path.join(smd_minimal_path, "by_charge_spin")
-    if not os.path.exists(smd_minimal_chargespin_path):
-        os.mkdir(smd_minimal_chargespin_path)
-
-    for key in smd_test_cs_dict:
-        file = os.path.join(smd_minimal_chargespin_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_train_'+key+'.xyz')
-        ase.io.write(file, smd_train_cs_dict[key], format="extxyz")
-        
-        file = os.path.join(smd_minimal_chargespin_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_val_'+key+'.xyz')
-        ase.io.write(file, smd_val_cs_dict[key], format="extxyz")
-        
-        file = os.path.join(smd_minimal_chargespin_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_test_'+key+'.xyz')
-        ase.io.write(file, smd_test_cs_dict[key], format="extxyz")
-
-        if key in smd_ood_cs_dict:
-            file = os.path.join(smd_minimal_chargespin_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_ood_'+key+'.xyz')
-            ase.io.write(file, smd_ood_cs_dict[key], format="extxyz")
-
-    # Singlet
-    smd_minimal_singlet_path = os.path.join(smd_minimal_path, "singlet")
-    if not os.path.exists(smd_minimal_singlet_path):
-        os.mkdir(smd_minimal_singlet_path)
-
-    smd_singlet_train = []
-    smd_singlet_val = []
-    smd_singlet_test = []
-    smd_singlet_ood = []
-
-    for item in tqdm(smd_build_minimal['train']):
-        if item.info['spin'] == 1:
-            smd_singlet_train.append(item)
-
-    for item in tqdm(smd_build_minimal['val']):
-        if item.info['spin'] == 1:
-            smd_singlet_val.append(item)
-
-    for item in tqdm(smd_build_minimal['test']):
-        if item.info['spin'] == 1:
-            smd_singlet_test.append(item)
-
-    for item in tqdm(smd_ood_minimal):
-        if item.info['spin'] == 1:
-            smd_singlet_ood.append(item)
-
-    file = os.path.join(smd_minimal_singlet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_singlet_train.xyz')
-    ase.io.write(file, smd_singlet_train, format="extxyz")
-    
-    file = os.path.join(smd_minimal_singlet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_singlet_val.xyz')
-    ase.io.write(file, smd_singlet_val, format="extxyz")
-    
-    file = os.path.join(smd_minimal_singlet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_singlet_test.xyz')
-    ase.io.write(file, smd_singlet_test, format="extxyz")
-
-    file = os.path.join(smd_minimal_singlet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_singlet_ood.xyz')
-    ase.io.write(file, smd_singlet_ood, format="extxyz")
-
-    # Doublet
-    smd_minimal_doublet_path = os.path.join(smd_minimal_path, "doublet")
-    if not os.path.exists(smd_minimal_doublet_path):
-        os.mkdir(smd_minimal_doublet_path)
-
-    smd_doublet_train = []
-    smd_doublet_val = []
-    smd_doublet_test = []
-    smd_doublet_ood = []
-
-    for item in tqdm(smd_build_minimal['train']):
-        if item.info['spin'] == 2:
-            smd_doublet_train.append(item)
-
-    for item in tqdm(smd_build_minimal['val']):
-        if item.info['spin'] == 2:
-            smd_doublet_val.append(item)
-
-    for item in tqdm(smd_build_minimal['test']):
-        if item.info['spin'] == 2:
-            smd_doublet_test.append(item)
-
-    for item in tqdm(smd_ood_minimal):
-        if item.info['spin'] == 2:
-            smd_doublet_ood.append(item)
-
-    file = os.path.join(smd_minimal_doublet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_doublet_train.xyz')
-    ase.io.write(file, smd_doublet_train, format="extxyz")
-    
-    file = os.path.join(smd_minimal_doublet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_doublet_val.xyz')
-    ase.io.write(file, smd_doublet_val, format="extxyz")
-    
-    file = os.path.join(smd_minimal_doublet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_doublet_test.xyz')
-    ase.io.write(file, smd_doublet_test, format="extxyz")
-
-    file = os.path.join(smd_minimal_doublet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_doublet_ood.xyz')
-    ase.io.write(file, smd_doublet_ood, format="extxyz")
-
-
-    # Neutral
-    smd_minimal_neutral_path = os.path.join(smd_minimal_path, "neutral")
-    if not os.path.exists(smd_minimal_neutral_path):
-        os.mkdir(smd_minimal_neutral_path)
-
-    smd_neutral_train = []
-    smd_neutral_val = []
-    smd_neutral_test = []
-    smd_neutral_ood = []
-
-    for item in tqdm(smd_build_minimal['train']):
-        if item.info['charge'] == 0:
-            smd_neutral_train.append(item)
-
-    for item in tqdm(smd_build_minimal['val']):
-        if item.info['charge'] == 0:
-            smd_neutral_val.append(item)
-
-    for item in tqdm(smd_build_minimal['test']):
-        if item.info['charge'] == 0:
-            smd_neutral_test.append(item)
-
-    for item in tqdm(smd_ood_minimal):
-        if item.info['charge'] == 0:
-            smd_neutral_ood.append(item)
-
-    file = os.path.join(smd_minimal_neutral_path,'radqm9_65_10_25_sp_smd_minimal_data_20240807_neutral_train.xyz')
-    ase.io.write(file, smd_neutral_train, format="extxyz")
-    
-    file = os.path.join(smd_minimal_neutral_path,'radqm9_65_10_25_sp_smd_minimal_data_20240807_neutral_val.xyz')
-    ase.io.write(file, smd_neutral_val, format="extxyz")
-    
-    file = os.path.join(smd_minimal_neutral_path,'radqm9_65_10_25_sp_smd_minimal_data_20240807_neutral_test.xyz')
-    ase.io.write(file, smd_neutral_test, format="extxyz")
-
-    file = os.path.join(smd_minimal_neutral_path,'radqm9_65_10_25_sp_smd_minimal_data_20240807_neutral_ood.xyz')
-    ase.io.write(file, smd_neutral_ood, format="extxyz")
-
-    fractions = [.01, .05, .1, .25, .5, .75]
-
-    wtd_minimal = weight_to_data_ase(smd_build_minimal["train"])
-    cd_minimal = chunk_data(wtd_minimal, fractions)
-    
-    wtd_cs = dict()
-    cd_cs = dict()
-    for key in smd_train_cs_dict:
-        wtd_cs[key] = weight_to_data_ase(smd_train_cs_dict[key])
-        cd_cs[key] = chunk_data(wtd_cs[key], fractions)
-
-    wtd_singlet = weight_to_data_ase(smd_singlet_train)
-    cd_singlet = chunk_data(wtd_singlet, fractions)
-
-    wtd_doublet = weight_to_data_ase(smd_doublet_train)
-    cd_doublet = chunk_data(wtd_doublet, fractions)
-
-    wtd_neutral = weight_to_data_ase(smd_neutral_train)
-    cd_neutral = chunk_data(wtd_neutral, fractions)
-
-    for ii, frac in enumerate(fractions):
-        chunk_file = os.path.join(smd_minimal_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_minimal[ii], format="extxyz")
-        
-        for key in cd_cs:
-            chunk_file = os.path.join(smd_minimal_chargespin_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_train_subset_' + key + f'_{frac}.xyz')
-            ase.io.write(chunk_file, cd_cs[key][ii], format="extxyz")
-
-        chunk_file = os.path.join(smd_minimal_singlet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_singlet_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_singlet[ii],format="extxyz")
-
-        chunk_file = os.path.join(smd_minimal_doublet_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_doublet_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_doublet[ii],format="extxyz")
-        
-        chunk_file = os.path.join(smd_minimal_neutral_path, 'radqm9_65_10_25_sp_smd_minimal_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
-        ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")
-
-    # Cleanup for memory
-    del smd_build_minimal
-    del smd_ood_minimal
-    del smd_train_cs_dict
-    del smd_val_cs_dict
-    del smd_test_cs_dict
-    del smd_ood_cs_dict
-    del smd_singlet_train
-    del smd_singlet_val
-    del smd_singlet_test
-    del smd_singlet_ood
-    del smd_doublet_train
-    del smd_doublet_val
-    del smd_doublet_test
-    del smd_doublet_ood
-    del smd_neutral_train
-    del smd_neutral_val
-    del smd_neutral_test
-    del smd_neutral_ood
-    del wtd_minimal
-    del wtd_cs
-    del wtd_doublet
-    del wtd_neutral
-
     # Full build
     smd_build_full = dict()
     for split in smd_data:
@@ -1714,6 +1170,3 @@ if __name__ == "__main__":
         
         chunk_file = os.path.join(smd_full_neutral_path, 'radqm9_65_10_25_sp_smd_full_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")
-    
-    # TODO: 
-    # - Calculate relative energies & regenerate

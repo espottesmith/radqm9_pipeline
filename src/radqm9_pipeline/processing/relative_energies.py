@@ -36,7 +36,7 @@ def relative_energies(atom_data: list, atomic_energies: dict):
             lookup_sum += atomic_energies[key][num]
         
         try:
-            energy = item.info["energy"]  # eV
+            energy = item.info["REF_energy"]  # eV
         except KeyError:
             # this ugly bit is for compatibility with newest ASE versions
             energy = item.get_potential_energy()
@@ -51,19 +51,12 @@ def main():
     Then, add relative energies to the dataset based on those atomic energies.
     """
 
-    traj_path = ""
     sp_path = ""
 
-    traj_minimal_path = os.path.join(traj_path, "minimal")
-    traj_full_path = os.path.join(traj_path, "full")
+    traj_full_path = ""
 
-    sp_vacuum_path = os.path.join(sp_path, "vacuum")
-    sp_vacuum_minimal_path = os.path.join(sp_vacuum_path, "minimal")
-    sp_vacuum_full_path = os.path.join(sp_vacuum_path, "full")
-
-    sp_solvent_path = os.path.join(sp_path, "smd")
-    sp_solvent_minimal_path = os.path.join(sp_solvent_path, "minimal")
-    sp_solvent_full_path = os.path.join(sp_solvent_path, "full")
+    sp_vacuum_full_path = os.path.join(sp_path, "vacuum")
+    sp_solvent_full_path = os.path.join(sp_path, "smd")
 
     traj_charge_spins = ["0_1", "0_3", "1_2", "-1_2"]
     sp_charge_spins = ["0_1", "0_3", "1_2", "-1_2", "-2_1", "2_1"]
@@ -72,11 +65,8 @@ def main():
     z_table = tools.get_atomic_number_table_from_zs(atomic_numbers)
 
     for path, charge_spins in [
-        (traj_minimal_path, traj_charge_spins),
         (traj_full_path, traj_charge_spins),
-        (sp_vacuum_minimal_path, sp_charge_spins),
         (sp_vacuum_full_path, sp_charge_spins),
-        (sp_solvent_minimal_path, sp_charge_spins),
         (sp_solvent_full_path, sp_charge_spins)
     ]:
         bychargespin_dir = os.path.join(path, "by_charge_spin")
@@ -97,12 +87,12 @@ def main():
                 valid_fraction=0.1,
                 config_type_weights={"Default": 1.0},
                 seed=42,
-                energy_key="energy",
-                forces_key="forces",
-                stress_key="stress",
-                virials_key="virials",
-                dipole_key="dipole",
-                charges_key="charges",
+                energy_key="REF_energy",
+                forces_key="REF_forces",
+                stress_key="REF_stress",
+                virials_key="REF_virials",
+                dipole_key="REF_dipole",
+                charges_key="REF_charges",
             )
 
             atomic_energies_dict = get_atomic_energies("average", collections.train, z_table)

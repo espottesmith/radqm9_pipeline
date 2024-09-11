@@ -213,6 +213,7 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
     )
+
     return parser
 
 
@@ -834,6 +835,7 @@ def main():
             valid_fraction=args.valid_fraction,
             config_type_weights=config_type_weights,
             test_path=args.test_file,
+            ood_path=args.ood_file,
             seed=args.seed,
             energy_key=args.energy_key,
             forces_key=args.forces_key,
@@ -842,21 +844,6 @@ def main():
             dipole_key=args.dipole_key,
             charges_key=args.charges_key,
         )
-
-    # # Atomic number table
-    # # yapf: disable
-    # if args.atomic_numbers is None:
-    #     z_table = tools.get_atomic_number_table_from_zs(
-    #         z
-    #         for configs in (collections.train, collections.valid)
-    #         for config in configs
-    #         for z in config.atomic_numbers
-    #     )
-    # else:
-    #     logging.info("Using atomic numbers from command line argument")
-    #     zs_list = ast.literal_eval(args.atomic_numbers)
-    #     assert isinstance(zs_list, list)
-    #     z_table = tools.get_atomic_number_table_from_zs(zs_list)
 
     logging.info("Preparing training set")
     if not os.path.exists(os.path.join(args.h5_prefix, "train")):
@@ -886,31 +873,6 @@ def main():
         
     for i in processes:
         i.join()
-
-    # logging.info("Computing statistics")
-    # atomic_energies_dict = get_atomic_energies(args.E0s, collections.train, z_table)
-    # atomic_energies: np.ndarray = np.array(
-    #     [atomic_energies_dict[z] for z in z_table.zs]
-    # )
-
-    # logging.info(f"Atomic energies: {atomic_energies.tolist()}")
-    # _inputs = [args.h5_prefix + '/train', z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
-    # avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
-    # logging.info(f"Average number of neighbors: {avg_num_neighbors}")
-    # logging.info(f"Mean: {mean}")
-    # logging.info(f"Standard deviation: {std}")
-
-    # save the statistics as a json
-    # statistics = {
-    #     "atomic_energies": atomic_energies_dict,
-    #     "avg_num_neighbors": avg_num_neighbors,
-    #     "mean": mean,
-    #     "std": std,
-    #     "atomic_numbers": z_table.zs,
-    #     "r_max": args.r_max,
-    # }
-
-    # dumpfn(statistics, args.h5_prefix + "/statistics.json")
     
     logging.info("Preparing validation set")
     if not os.path.exists(os.path.join(args.h5_prefix, "val")):
