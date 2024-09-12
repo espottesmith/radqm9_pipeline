@@ -770,11 +770,17 @@ def get_prime_factors(n: int):
     return factors
 
 
-def multi_hdf5(data: list, process: int, h5_prefix: str, subset: str, drop_last: bool, save_function: Callable, name: Optional[str] = None):
+def multi_hdf5(data: list, process: int, h5_prefix: str, subset: str | None, drop_last: bool, save_function: Callable, name: str | None):
     if name is None:
-        name = subset
+        if subset is not None:
+            name = subset
+        else:
+            name = "Default"
     
-    h5_file = f"{h5_prefix}/{subset}/{name}_{process}.h5"
+    if subset is None:
+        h5_file = f"{h5_prefix}/{name}_{process}.h5"
+    else:
+        h5_file = f"{h5_prefix}/{subset}/{name}_{process}.h5"
 
     with h5py.File(h5_file, "w") as f:
         f.attrs["drop_last"] = drop_last
@@ -812,15 +818,12 @@ def main():
         os.makedirs(args.h5_prefix)
 
     # Data preparation
-    if args.extended:
-        collections = get_expanded_dataset_from_xyz(
-            train_path=args.train_file,
-            valid_path=args.valid_file,
-            valid_fraction=args.valid_fraction,
+
+    # If only training data is available
+    if args.valid_file is None:
+        train_configs = load_from_xyz_expanded(
+            file_path=args.train_file,
             config_type_weights=config_type_weights,
-            test_path=args.test_file,
-            ood_path=args.ood_file,
-            seed=args.seed,
             energy_key=args.energy_key,
             forces_key=args.forces_key,
             stress_key=args.stress_key,
@@ -828,117 +831,167 @@ def main():
             dipole_key=args.dipole_key,
             charges_key=args.charges_key,
         )
-    else:    
-        collections = get_dataset_from_xyz(
-            train_path=args.train_file,
-            valid_path=args.valid_file,
-            valid_fraction=args.valid_fraction,
-            config_type_weights=config_type_weights,
-            test_path=args.test_file,
-            ood_path=args.ood_file,
-            seed=args.seed,
-            energy_key=args.energy_key,
-            forces_key=args.forces_key,
-            stress_key=args.stress_key,
-            virials_key=args.virials_key,
-            dipole_key=args.dipole_key,
-            charges_key=args.charges_key,
+        logging.info(
+            f"Loaded {len(train_configs)} training configurations from '{args.train_file}'"
         )
 
-    logging.info("Preparing training set")
-    if not os.path.exists(os.path.join(args.h5_prefix, "train")):
-        os.makedirs(os.path.join(args.h5_prefix, "train"))
-    if args.shuffle:
-        random.shuffle(collections.train)
+        logging.info("Preparing training set")
+        if not os.path.exists(args.h5_prefix):
+            os.makedirs(args.h5_prefix)
+        if args.shuffle:
+            random.shuffle(train_configs)
 
-    # split collections.train into batches and save them to hdf5
-    split_train = np.array_split(collections.train, args.num_process)
-    drop_last = False
-    if len(collections.train) % 2 == 1:
-        drop_last = True
-
-    if args.extended:
-        save_function = save_expanded_configurations_as_HDF5
-    else:
-        save_function = save_configurations_as_HDF5
-
-    processes = []
-    for i in range(args.num_process):
-        p = mp.Process(
-            target=multi_hdf5,
-            args=[split_train, i, args.h5_prefix, "train", drop_last, save_function, None]
-        )
-        p.start()
-        processes.append(p)
-        
-    for i in processes:
-        i.join()
-    
-    logging.info("Preparing validation set")
-    if not os.path.exists(os.path.join(args.h5_prefix, "val")):
-        os.makedirs(os.path.join(args.h5_prefix, "val"))
-    if args.shuffle:
-        random.shuffle(collections.valid)
-    split_valid = np.array_split(collections.valid, args.num_process) 
-    drop_last = False
-    if len(collections.valid) % 2 == 1:
-        drop_last = True
-
-    processes = []
-    for i in range(args.num_process):
-        p = mp.Process(
-            target=multi_hdf5,
-            args=[split_valid, i, args.h5_prefix, "val", drop_last, save_function, None]
-        )
-        p.start()
-        processes.append(p)
-        
-    for i in processes:
-        i.join()
-
-    if args.test_file is not None:
-        logging.info("Preparing test sets")
-        if not os.path.exists(os.path.join(args.h5_prefix, "test")):
-            os.makedirs(os.path.join(args.h5_prefix, "test"))
-        for name, subset in collections.tests:
-            drop_last = False
-            if len(subset) % 2 == 1:
-                drop_last = True
-            split_test = np.array_split(subset, args.num_process) 
-
-            processes = []
-            for i in range(args.num_process):
-                p = mp.Process(
-                    target=multi_hdf5,
-                    args=[split_test, i, args.h5_prefix, "test", drop_last, save_function, name]
-                )
-                p.start()
-                processes.append(p)
-                
-            for i in processes:
-                i.join()
-
-    logging.info("Preparing OOD test set")
-    if args.ood_file is not None:
-        if not os.path.exists(os.path.join(args.h5_prefix, "ood")):
-            os.makedirs(os.path.join(args.h5_prefix, "ood"))
-
-        split_ood = np.array_split(collections.ood, args.num_process) 
+        # split collections.train into batches and save them to hdf5
+        split_train = np.array_split(train_configs, args.num_process)
         drop_last = False
-        if len(collections.ood) % 2 == 1:
+        if len(train_configs) % 2 == 1:
             drop_last = True
+
+        if args.extended:
+            save_function = save_expanded_configurations_as_HDF5
+        else:
+            save_function = save_configurations_as_HDF5
 
         processes = []
         for i in range(args.num_process):
             p = mp.Process(
                 target=multi_hdf5,
-                args=[split_ood, i, args.h5_prefix, "ood", drop_last, save_function, None]
+                args=[split_train, i, args.h5_prefix, None, drop_last, save_function, None]
             )
             p.start()
             processes.append(p)
             
         for i in processes:
             i.join()
+
+    else:
+        if args.extended:
+            collections = get_expanded_dataset_from_xyz(
+                train_path=args.train_file,
+                valid_path=args.valid_file,
+                valid_fraction=args.valid_fraction,
+                config_type_weights=config_type_weights,
+                test_path=args.test_file,
+                ood_path=args.ood_file,
+                seed=args.seed,
+                energy_key=args.energy_key,
+                forces_key=args.forces_key,
+                stress_key=args.stress_key,
+                virials_key=args.virials_key,
+                dipole_key=args.dipole_key,
+                charges_key=args.charges_key,
+            )
+        else:    
+            collections = get_dataset_from_xyz(
+                train_path=args.train_file,
+                valid_path=args.valid_file,
+                valid_fraction=args.valid_fraction,
+                config_type_weights=config_type_weights,
+                test_path=args.test_file,
+                ood_path=args.ood_file,
+                seed=args.seed,
+                energy_key=args.energy_key,
+                forces_key=args.forces_key,
+                stress_key=args.stress_key,
+                virials_key=args.virials_key,
+                dipole_key=args.dipole_key,
+                charges_key=args.charges_key,
+            )
+
+        logging.info("Preparing training set")
+        if not os.path.exists(os.path.join(args.h5_prefix, "train")):
+            os.makedirs(os.path.join(args.h5_prefix, "train"))
+        if args.shuffle:
+            random.shuffle(collections.train)
+
+        # split collections.train into batches and save them to hdf5
+        split_train = np.array_split(collections.train, args.num_process)
+        drop_last = False
+        if len(collections.train) % 2 == 1:
+            drop_last = True
+
+        if args.extended:
+            save_function = save_expanded_configurations_as_HDF5
+        else:
+            save_function = save_configurations_as_HDF5
+
+        processes = []
+        for i in range(args.num_process):
+            p = mp.Process(
+                target=multi_hdf5,
+                args=[split_train, i, args.h5_prefix, "train", drop_last, save_function, None]
+            )
+            p.start()
+            processes.append(p)
+            
+        for i in processes:
+            i.join()
+        
+        logging.info("Preparing validation set")
+        if not os.path.exists(os.path.join(args.h5_prefix, "val")):
+            os.makedirs(os.path.join(args.h5_prefix, "val"))
+        if args.shuffle:
+            random.shuffle(collections.valid)
+        split_valid = np.array_split(collections.valid, args.num_process) 
+        drop_last = False
+        if len(collections.valid) % 2 == 1:
+            drop_last = True
+
+        processes = []
+        for i in range(args.num_process):
+            p = mp.Process(
+                target=multi_hdf5,
+                args=[split_valid, i, args.h5_prefix, "val", drop_last, save_function, None]
+            )
+            p.start()
+            processes.append(p)
+            
+        for i in processes:
+            i.join()
+
+        if args.test_file is not None:
+            logging.info("Preparing test sets")
+            if not os.path.exists(os.path.join(args.h5_prefix, "test")):
+                os.makedirs(os.path.join(args.h5_prefix, "test"))
+            for name, subset in collections.tests:
+                drop_last = False
+                if len(subset) % 2 == 1:
+                    drop_last = True
+                split_test = np.array_split(subset, args.num_process) 
+
+                processes = []
+                for i in range(args.num_process):
+                    p = mp.Process(
+                        target=multi_hdf5,
+                        args=[split_test, i, args.h5_prefix, "test", drop_last, save_function, name]
+                    )
+                    p.start()
+                    processes.append(p)
+                    
+                for i in processes:
+                    i.join()
+
+        logging.info("Preparing OOD test set")
+        if args.ood_file is not None:
+            if not os.path.exists(os.path.join(args.h5_prefix, "ood")):
+                os.makedirs(os.path.join(args.h5_prefix, "ood"))
+
+            split_ood = np.array_split(collections.ood, args.num_process) 
+            drop_last = False
+            if len(collections.ood) % 2 == 1:
+                drop_last = True
+
+            processes = []
+            for i in range(args.num_process):
+                p = mp.Process(
+                    target=multi_hdf5,
+                    args=[split_ood, i, args.h5_prefix, "ood", drop_last, save_function, None]
+                )
+                p.start()
+                processes.append(p)
+                
+            for i in processes:
+                i.join()
 
 
 if __name__ == "__main__":
