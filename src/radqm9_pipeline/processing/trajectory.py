@@ -589,7 +589,7 @@ if __name__ == "__main__":
 
     traj_all = build_atoms_iterator(r_data)
 
-    file = os.path.join(base_path, 'radqm9_65_10_25_trajectory_data_20240807_all.xyz')
+    file = os.path.join(base_path, 'radqm9_65_10_25_trajectory_data_20240916_all.xyz')
     ase.io.write(file, traj_all, format="extxyz")
 
     # Cleaning for memory
@@ -640,6 +640,106 @@ if __name__ == "__main__":
 
     sld = length_dict(wtd) # you need to call this again yes
 
+    swap_val_train = ["123.155"]  # 49120
+    swap_train_val = [
+        "30.07",  # 8
+        "41.053",  # 11
+        "57.052",  # 8
+        "65.075",  # 22
+        "70.095",  # 22
+        "72.107",  # 124
+        "78.07",  # 22
+        "80.086",  # 16
+        "90.122",  # 64
+        "93.129",  # 428
+        "94.117",  # 350
+        "98.0804",  # 46
+        "98.145",  # 2004
+        "104.149",  # 203
+        "106.121",  # 44
+        "109.132",  # 712
+        "110.12",  # 399
+        "111.104",  # 1578
+        "112.088",  # 1227
+        "113.16",  # 3043
+        "114.06",  # 117
+        "114.152",  # 8
+        "114.188",  # 1689
+        "115.176",  # 865
+        "116.119",  # 138
+        "117.06",  # 11
+        "117.151",  # 2656
+        "118.099",  # 131
+        "118.179",  # 4715
+        "120.071",  # 92
+        "120.111",  # 2646
+        "121.1144",  # 253
+        "122.123",  # 4309
+        "122.211",  # 13118
+        "128.087",  # 4311
+        "130.0784",  # 1712
+        "140.1052",  # 837
+        "142.0772",  # 464
+        "143.0652",  # 41
+    ]  # TOTAL: 48444 (net loss of 676 from val to train)
+    swap_val_test = ["132.159"]  # 9632
+    swap_test_val = [
+        "46.069",  # 16
+        "81.118",  # 200
+        "83.046",  # 8
+        "84.082",  # 88
+        "86.094",  # 151
+        "88.066",  # 41
+        "94.157",  # 583
+        "95.061",  # 63
+        "98.105",  # 1408
+        "98.189",  # 271
+        "99.049",  # 32
+        "100.073",  # 184
+        "101.149",  # 484
+        "103.124",  # 112
+        "106.124",  # 524
+        "108.096",  # 134
+        "108.184",  # 1060
+        "110.068",  # 27
+        "112.172",  # 2983
+        "113.0954",  # 81
+        "118.176",  # 437
+        "137.1052",  # 390
+    ]  # TOTAL: 9277 (net loss of 355 from val to test)
+
+    for mass in swap_val_train:
+        if mass in val_mass:
+            val_mass.remove(mass)
+            train_mass.append(mass)
+
+            val -= sld[mass]
+            train += sld[mass]
+
+    for mass in swap_train_val:
+        if mass in train_mass:
+            train_mass.remove(mass)
+            val_mass.append(mass)
+
+            val += sld[mass]
+            train -= sld[mass]
+
+    for mass in swap_val_test:
+        if mass in val_mass:
+            val_mass.remove(mass)
+            test_mass.append(mass)
+
+            val -= sld[mass]
+            test += sld[mass]
+
+    for mass in swap_test_val:
+        if mass in test_mass:
+            test_mass.remove(mass)
+            val_mass.append(mass)
+
+            val += sld[mass]
+            test -= sld[mass]
+
     data = {
         "train": list(),
         "val": list(),
@@ -656,10 +756,10 @@ if __name__ == "__main__":
     for split in data:
         build_full[split] = build_atoms_iterator(data[split], energy="energies")
         
-    create_dataset(build_full, 'radqm9_65_10_25_trajectory_full_data_20240807', full_data_path)
+    create_dataset(build_full, 'radqm9_65_10_25_trajectory_full_data_20240916', full_data_path)
 
     ood_full = build_atoms_iterator(ood, energy="energies")
-    file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240807_ood.xyz')
+    file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240916_ood.xyz')
     ase.io.write(file, ood_full, format="extxyz")
 
     # Charge/spin subsets
@@ -702,17 +802,17 @@ if __name__ == "__main__":
         os.mkdir(full_chargespin_path)
 
     for key in test_cs_dict:
-        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240807_train_'+key+'.xyz')
+        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240916_train_'+key+'.xyz')
         ase.io.write(file, train_cs_dict[key], format="extxyz")
         
-        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240807_val_'+key+'.xyz')
+        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240916_val_'+key+'.xyz')
         ase.io.write(file, val_cs_dict[key],format="extxyz")
         
-        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240807_test_'+key+'.xyz')
+        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240916_test_'+key+'.xyz')
         ase.io.write(file, test_cs_dict[key],format="extxyz")
 
         if key in ood_cs_dict:
-            file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240807_ood_'+key+'.xyz')
+            file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240916_ood_'+key+'.xyz')
             ase.io.write(file, ood_cs_dict[key], format="extxyz")
 
     # Doublet
@@ -741,16 +841,16 @@ if __name__ == "__main__":
         if item.info['spin'] == 2:
             doublet_ood.append(item)
 
-    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240807_doublet_train.xyz')
+    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240916_doublet_train.xyz')
     ase.io.write(file, doublet_train, format="extxyz")
     
-    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240807_doublet_val.xyz')
+    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240916_doublet_val.xyz')
     ase.io.write(file, doublet_val,format="extxyz")
     
-    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240807_doublet_test.xyz')
+    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240916_doublet_test.xyz')
     ase.io.write(file, doublet_test,format="extxyz")
 
-    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240807_doublet_ood.xyz')
+    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240916_doublet_ood.xyz')
     ase.io.write(file, doublet_ood, format="extxyz")
 
     # Neutral
@@ -779,16 +879,16 @@ if __name__ == "__main__":
         if item.info['charge'] == 0:
             neutral_ood.append(item)
 
-    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240807_neutral_train.xyz')
+    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240916_neutral_train.xyz')
     ase.io.write(file, neutral_train, format="extxyz")
     
-    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240807_neutral_val.xyz')
+    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240916_neutral_val.xyz')
     ase.io.write(file, neutral_val, format="extxyz")
     
-    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240807_neutral_test.xyz')
+    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240916_neutral_test.xyz')
     ase.io.write(file, neutral_test, format="extxyz")
 
-    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240807_neutral_ood.xyz')
+    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240916_neutral_ood.xyz')
     ase.io.write(file, neutral_ood, format="extxyz")
 
     fractions = [.01, .05, .1, .25, .5, .75]
@@ -809,15 +909,15 @@ if __name__ == "__main__":
     cd_neutral = chunk_data(wtd_neutral, fractions)
 
     for ii, frac in enumerate(fractions):
-        chunk_file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240807_train_subset_' + f'{frac}.xyz')
+        chunk_file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240916_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_full[ii],format="extxyz")
         
         for key in cd_cs:
-            chunk_file = os.path.join(full_chargespin_path, 'radqm9_65_10_25_trajectory_full_data_20240807_train_subset_' + key + f'_{frac}.xyz')
+            chunk_file = os.path.join(full_chargespin_path, 'radqm9_65_10_25_trajectory_full_data_20240916_train_subset_' + key + f'_{frac}.xyz')
             ase.io.write(chunk_file, cd_cs[key][ii], format="extxyz")
             
-        chunk_file = os.path.join(full_doublet_path, 'radqm9_65_10_25_trajectory_full_data_20240807_doublet_train_subset_' + f'{frac}.xyz')
+        chunk_file = os.path.join(full_doublet_path, 'radqm9_65_10_25_trajectory_full_data_20240916_doublet_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_doublet[ii],format="extxyz")
         
-        chunk_file = os.path.join(full_neutral_path, 'radqm9_65_10_25_trajectory_full_data_20240807_neutral_train_subset_' + f'{frac}.xyz')
+        chunk_file = os.path.join(full_neutral_path, 'radqm9_65_10_25_trajectory_full_data_20240916_neutral_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")

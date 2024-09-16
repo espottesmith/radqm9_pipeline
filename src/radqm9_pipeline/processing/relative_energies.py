@@ -66,8 +66,8 @@ def main():
 
     for path, charge_spins in [
         (traj_full_path, traj_charge_spins),
-        (sp_vacuum_full_path, sp_charge_spins),
-        (sp_solvent_full_path, sp_charge_spins)
+        # (sp_vacuum_full_path, sp_charge_spins),
+        # (sp_solvent_full_path, sp_charge_spins)
     ]:
         bychargespin_dir = os.path.join(path, "by_charge_spin")
 
