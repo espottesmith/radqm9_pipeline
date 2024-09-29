@@ -17,7 +17,7 @@ from radqm9_pipeline.elements import read_elements
 
 CUR_DIR = os.path.dirname(os.path.realpath(__file__))
 
-elements_dict = read_elements(os.path.join(CUR_DIR, 'elements.pkl'))
+elements_dict = read_elements(os.path.join(CUR_DIR, '..', 'elements', 'elements.pkl'))
 
 
 def create_properties_dataset(
@@ -32,10 +32,6 @@ def create_properties_dataset(
         "zero_point_energy",
         "total_enthalpy",
         "total_entropy",
-        "rotational_enthalpy",
-        "rotational_entropy",
-        "vibrational_enthalpy",
-        "vibrational_entropy",
         "frequencies",
         "frequency_modes",
         "ir_intensities",
@@ -44,16 +40,21 @@ def create_properties_dataset(
         "raman_activities",
     ],
     required_sp_fields: List[str] = [
+        "electronic_energy",
         "free_energy",
         "electron_affinity",
         "ionization_energy",
+        "total_dipole",
+        "resp_total_dipole",
+        "dipole_moment",
+        "resp_dipole_moment",
+        "partial_charges",  # NOTE: multiple methods
+        "partial_spins",  # NOTE: multiple methods
     ],
     additional_opt_fields: List[str] = list(),
     additional_sp_fields: List[str] = [
         "reduction_free_energy",
         "oxidation_free_energy",
-        "total_dipole",
-        "resp_total_dipole",
         "quadrupole_moment",
         "octopole_moment",
         "hexadecapole_moment"
@@ -73,10 +74,6 @@ def create_properties_dataset(
                 - "zero_point_energy"
                 - "total_enthalpy"
                 - "total_entropy"
-                - "rotational_enthalpy",
-                - "rotational_entropy"
-                - "vibrational_enthalpy"
-                - "vibrational_entropy"
                 - "frequencies"
                 - "frequency_modes"
                 - "ir_intensities"
@@ -88,14 +85,14 @@ def create_properties_dataset(
                 - "free_energy"
                 - "electron_affinity"
                 - "ionization_energy"
+                - "total_dipole"
+                - "resp_total_dipole"
         additional_opt_fields (List[str]): List of fields derived from optimization/frequency calculations that are
             optional. Default is an empty list.
         additional_sp_fields (List[str]): List of fields derived from single-point energy and force calculations that
             are optional. Defaults include:
                 - "reduction_free_energy"
                 - "oxidation_free_energy"
-                - "total_dipole"
-                - "resp_total_dipole"
                 - "quadrupole_moment"
                 - "octopole_moment"
                 - "hexadecapole_moment"

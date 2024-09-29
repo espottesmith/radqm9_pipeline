@@ -35,8 +35,8 @@ from mace.tools import torch_geometric
 from mace.modules import compute_statistics
 
 
-# Note: in trajectory data, dipole moment keys are "dipole_moments", "resp_dipole_moments", and "calc_resp_dipole_moments"
-# In sp data, they are "dipole_moment", "resp_dipole_moment", and "calc_resp_dipole_moment". Whoops...
+# Note: in trajectory data, dipole moment keys are "dipole_moments" and "resp_dipole_moments"
+# In sp data, they are "dipole_moment" and "resp_dipole_moment". Whoops...
 
 
 def build_preprocess_arg_parser() -> argparse.ArgumentParser:
@@ -447,7 +447,7 @@ def load_from_xyz_expanded(
     charges_key: str = "mulliken_partial_charges",
     total_charge_key: str = "charge",
     spin_key: str = "spin",
-) -> Tuple[Dict[int, float], ExpandedConfigurations]:
+) -> ExpandedConfigurations:
 
     atoms_list = ase.io.read(file_path, index=":")
 
@@ -569,8 +569,8 @@ def get_expanded_dataset_from_xyz(
     return ExpandedSubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs, ood=ood_configs)
 
 
-def save_expanded_configurations_as_HDF5(configurations: ExpandedConfigurations, i, h5_file) -> None:
-    grp = h5_file.create_group("config_batch_0")
+def save_expanded_configurations_as_HDF5(configurations: ExpandedConfigurations, index: int, h5_file: h5py.File) -> None:
+    grp = h5_file.create_group(f"config_batch_{index}")
     for i, config in enumerate(configurations):
         subgroup_name = f"config_{i}"
         subgroup = grp.create_group(subgroup_name)

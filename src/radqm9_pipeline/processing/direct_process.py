@@ -474,6 +474,11 @@ def filter_broken_graphs(data: list):
     return good, broken
 
 
+def generate_configs():
+    #TODO
+    pass
+
+
 if __name__ == "__main__":
 
     base_path = ""
@@ -579,27 +584,14 @@ if __name__ == "__main__":
 
     resolve_mulliken_partial_spins(r_data)
 
-    dumpfn(r_data, os.path.join(base_path, "raw_trajectory_data.json"))
-
     r_data = filter_data(r_data)
-
     r_data = force_magnitude_filter(cutoff=10.0, data=r_data)
 
     convert_energy_forces(r_data)
 
     molecule_weight(r_data, elements_dict)
 
-    traj_all = build_atoms_iterator(r_data)
-
-    file = os.path.join(base_path, 'radqm9_65_10_25_trajectory_data_20240916_all.xyz')
-    ase.io.write(file, traj_all, format="extxyz")
-
-    # Cleaning for memory
-    del traj_all
-
     sparse_trajectory(r_data)
-
-    dumpfn(r_data, os.path.join(base_path, "clean_trajectory_data.json"))
 
     r_data, ood = filter_broken_graphs(r_data)
 
@@ -753,14 +745,19 @@ if __name__ == "__main__":
             for mpoint in wtd[mass]:
                 data[split].append(mpoint)
 
+    #TODO: you are here
+
     # Full build
     build_full = dict()
     for split in data:
-        build_full[split] = build_atoms_iterator(data[split], energy="energies")
-        
+        build_full[split] = generate_configs(data[split])
+        save_configurations_as_HDF5(build_full[split], )
+
     create_dataset(build_full, 'radqm9_65_10_25_trajectory_full_data_20240916', full_data_path)
 
-    ood_full = build_atoms_iterator(ood, energy="energies")
+    ood_full = generate_configs(ood)
+
+
     file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240916_ood.xyz')
     ase.io.write(file, ood_full, format="extxyz")
 

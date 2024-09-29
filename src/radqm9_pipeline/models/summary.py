@@ -45,7 +45,7 @@ class RadQM9SummaryDoc(PropertyDoc):
     # molecules
     molecule: Molecule = Field(
         ...,
-        description="The lowest energy optimized structure for this molecule for each solvent.",
+        description="The lowest energy optimized structure for this molecule.",
     )
 
     molecule_levels_of_theory: Optional[Dict[str, str]] = Field(

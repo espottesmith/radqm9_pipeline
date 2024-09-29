@@ -476,346 +476,22 @@ def filter_broken_graphs(data: list):
 
 if __name__ == "__main__":
 
-    base_path = ""
-    full_data_path = base_path
+    full_data_path = "/clusterfs/mp/ewcspottesmith/data/radqm9/process/traj/"
 
-    elements_dict = read_elements('/global/home/users/ewcspottesmith/software/radqm9_pipeline/src/radqm9_pipeline/elements/elements.pkl')
-
-    # Trajectory information
-    traj_store = MongoStore(database="thermo_chem_storage",
-                            collection_name="radqm9_trajectories",
-                            username="thermo_chem_storage_ro",
-                            password="",
-                            host="mongodb07.nersc.gov",
-                            port=27017,
-                            key="molecule_id")
-    traj_store.connect()
-
-    r_data = []
-    for entry in traj_store.query(
-        {},
-        {
-            "molecule_id": 1,
-            "species": 1,
-            "charge": 1,
-            "spin_multiplicity": 1,
-            "geometries": 1,
-            "energies": 1,
-            "forces": 1,
-            "mulliken_partial_charges": 1,
-            "mulliken_partial_spins": 1,
-            "resp_partial_charges": 1,
-            "dipole_moments": 1,
-            "resp_dipole_moments": 1
-        }
-    ):
-        item = {}
-        item['mol_id'] = entry['molecule_id']
-        item['species'] = entry['species']
-        item['charge'] = entry['charge'] 
-        item['spin'] = entry['spin_multiplicity']
-        item['geometries'] = entry['geometries']
-        item['energy'] = entry['energies']
-        item['gradients'] = entry['forces']
-        item['mulliken_partial_charges'] = entry['mulliken_partial_charges']
-        item['mulliken_partial_spins'] = entry['mulliken_partial_spins']
-        item['resp_partial_charges'] = entry['resp_partial_charges']
-        item['dipole_moments'] = entry['dipole_moments']
-        item['resp_dipole_moments'] = entry['resp_dipole_moments']
-
-        try:
-            feat = [len(item['geometries']), len(item['gradients']), len(item['energy'])]
-
-            feat_set = set(feat)
-            if len(feat_set) !=1 :
-                continue
-            else:
-                len_geo = len(item['geometries'])
-                if len_geo==1:
-                    r_data.append(item)
-                elif len_geo > 1:
-                    item['geometries'] = list(itertools.chain.from_iterable(item['geometries']))
-                    item['gradients'] = list(itertools.chain.from_iterable(item['gradients']))
-                    item['energy'] = list(itertools.chain.from_iterable(item['energy']))
-                    item['mulliken_partial_charges'] = list(itertools.chain.from_iterable(item['mulliken_partial_charges']))
-                    item['resp_partial_charges'] = list(itertools.chain.from_iterable(item['resp_partial_charges']))
-               
-                    try:
-                        item['mulliken_partial_spins'] = list(itertools.chain.from_iterable(item['mulliken_partial_spins']))
-                    except TypeError:
-                        # We will resolve weird spin data later in the pipeline
-                        pass
-
-                    item['dipole_moments'] = list(itertools.chain.from_iterable(item['dipole_moments']))
-                    item['resp_dipole_moments'] = list(itertools.chain.from_iterable(item['resp_dipole_moments']))
-
-                    r_data.append(item)
-                else:
-                    continue
-        except TypeError:
-            continue
-
-    add_unique_id(r_data)
-
-    dimension(r_data)
-
-    pc = filter_field(r_data, 'mulliken_partial_charges')
-    ps = filter_field(r_data, 'mulliken_partial_spins')
-    rpc = filter_field(r_data, 'resp_partial_charges')
-    dm = filter_field(r_data, 'dipole_moments')
-    rdm = filter_field(r_data, 'resp_dipole_moments')
-
-    missing_data = {
-        "mulliken_partial_charges": {x: len(pc[x]) for x in pc.keys()},
-        "mulliken_partial_spins": {x: len(ps[x]) for x in ps.keys()},
-        "resp_partial_charges": {x: len(rpc[x]) for x in rpc.keys()},
-        "dipole_moments": {x: len(dm[x]) for x in dm.keys()},
-        "resp_dipole_moments": {x: len(rdm[x]) for x in rdm.keys()},
-    }
-
-    dumpfn(missing_data, os.path.join(base_path, "missing_data.json"))
-
-    # generate_resp_dipole(r_data)
-
-    resolve_mulliken_partial_spins(r_data)
-
-    dumpfn(r_data, os.path.join(base_path, "raw_trajectory_data.json"))
-
-    r_data = filter_data(r_data)
-
-    r_data = force_magnitude_filter(cutoff=10.0, data=r_data)
-
-    convert_energy_forces(r_data)
-
-    molecule_weight(r_data, elements_dict)
-
-    traj_all = build_atoms_iterator(r_data)
-
-    file = os.path.join(base_path, 'radqm9_65_10_25_trajectory_data_20240916_all.xyz')
-    ase.io.write(file, traj_all, format="extxyz")
-
-    # Cleaning for memory
-    del traj_all
-
-    sparse_trajectory(r_data)
-
-    dumpfn(r_data, os.path.join(base_path, "clean_trajectory_data.json"))
-
-    r_data, ood = filter_broken_graphs(r_data)
-
-    wtd = weight_to_data(r_data)
-    sld = length_dict(wtd)
-
-    # Cleaning for memory
-    del r_data
-
-    train_mass = ['152.037']
-    test_mass = ['144.092']
-    val_mass = ['143.108']
-
-    # trackers for dataset sizes
-    train = sld['152.037']
-    test = sld['144.092']
-    val = sld['143.108']
-
-    sld.pop('152.037')
-    sld.pop('144.092')
-    sld.pop('143.108')
-
-    # Sort the data 
-    # data is a dict: mass-># of trajs
-    for mass in sld:
-        temp_total = train + val + test
-        train_ratio = .65 - (train / temp_total)
-        test_ratio = .25 - (test / temp_total)
-        val_ratio = .1 - (val / temp_total)
-        
-        if train_ratio > val_ratio and train_ratio>test_ratio:
-            train_mass.append(mass)
-            train += sld[mass]
-        elif val_ratio > train_ratio and val_ratio>test_ratio:
-            val_mass.append(mass)
-            val += sld[mass]
-        else:
-            test_mass.append(mass)
-            test += sld[mass]
-
-    sld = length_dict(wtd) # you need to call this again yes
-
-    swap_val_train = ["123.155"]  # 49120
-    swap_train_val = [
-        "30.07",  # 8
-        "41.053",  # 11
-        "57.052",  # 8
-        "65.075",  # 22
-        "70.095",  # 22
-        "72.107",  # 124
-        "78.07",  # 22
-        "80.086",  # 16
-        "90.122",  # 64
-        "93.129",  # 428
-        "94.117",  # 350
-        "98.0804",  # 46
-        "98.145",  # 2004
-        "104.149",  # 203
-        "106.121",  # 44
-        "109.132",  # 712
-        "110.12",  # 399
-        "111.104",  # 1578
-        "112.088",  # 1227
-        "113.16",  # 3043
-        "114.06",  # 117
-        "114.152",  # 8
-        "114.188",  # 1689
-        "115.176",  # 865
-        "116.119",  # 138
-        "117.06",  # 11
-        "117.151",  # 2656
-        "118.099",  # 131
-        "118.179",  # 4715
-        "120.071",  # 92
-        "120.111",  # 2646
-        "121.1144",  # 253
-        "122.123",  # 4309
-        "122.211",  # 13118
-        "128.087",  # 4311
-        "130.0784",  # 1712
-        "140.1052",  # 837
-        "142.0772",  # 464
-        "143.0652",  # 41
-    ]  # TOTAL: 48444 (net loss of 676 from val to train)
-    swap_val_test = ["132.159"]  # 9632
-    swap_test_val = [
-        "46.069",  # 16
-        "81.118",  # 200
-        "83.046",  # 8
-        "84.082",  # 88
-        "86.094",  # 151
-        "88.066",  # 41
-        "94.157",  # 583
-        "95.061",  # 63
-        "98.105",  # 1408
-        "98.189",  # 271
-        "99.049",  # 32
-        "100.073",  # 184
-        "101.149",  # 484
-        "103.124",  # 112
-        "106.124",  # 524
-        "108.096",  # 134
-        "108.184",  # 1060
-        "110.068",  # 27
-        "112.172",  # 2983
-        "113.0954",  # 81
-        "118.176",  # 437
-        "137.1052",  # 390
-    ]  # TOTAL: 9277 (net loss of 355 from val to test)
-
-    for mass in swap_val_train:
-        if mass in val_mass:
-            val_mass.remove(mass)
-            train_mass.append(mass)
-
-            val -= sld[mass]
-            train += sld[mass]
-
-    for mass in swap_train_val:
-        if mass in train_mass:
-            train_mass.remove(mass)
-            val_mass.append(mass)
-
-            val += sld[mass]
-            train -= sld[mass]
-
-    for mass in swap_val_test:
-        if mass in val_mass:
-            val_mass.remove(mass)
-            test_mass.append(mass)
-
-            val -= sld[mass]
-            test += sld[mass]
-
-    for mass in swap_test_val:
-        if mass in test_mass:
-            test_mass.remove(mass)
-            val_mass.append(mass)
-
-            val += sld[mass]
-            test -= sld[mass]
-
-    data = {
-        "train": list(),
-        "val": list(),
-        "test": list()
-    }
-
-    for split, masses in [("train", train_mass), ("val", val_mass), ("test", test_mass)]:
-        for mass in masses:
-            for mpoint in wtd[mass]:
-                data[split].append(mpoint)
-
-    # Full build
-    build_full = dict()
-    for split in data:
-        build_full[split] = build_atoms_iterator(data[split], energy="energies")
-        
-    create_dataset(build_full, 'radqm9_65_10_25_trajectory_full_data_20240916', full_data_path)
-
-    ood_full = build_atoms_iterator(ood, energy="energies")
-    file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240916_ood.xyz')
-    ase.io.write(file, ood_full, format="extxyz")
+    data = ase.io.read(os.path.join(full_data_path, "radqm9_65_10_25_trajectory_full_data_20240916_train.xyz"))
 
     # Charge/spin subsets
     train_cs_dict = {}
-    for item in tqdm(build_full['train']):
+    for item in tqdm(data):
         key = str(item.info['charge']) + "_" + str(item.info['spin'])
         try:
             train_cs_dict[key].append(item)
         except KeyError:
             train_cs_dict[key] = [item]
-
-    val_cs_dict = {}
-    for item in tqdm(build_full['val']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            val_cs_dict[key].append(item)
-        except KeyError:
-            val_cs_dict[key] = [item]
-
-    test_cs_dict = {}
-    for item in tqdm(build_full['test']):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            test_cs_dict[key].append(item)
-        except KeyError:
-            test_cs_dict[key] = [item]
-
-    ood_cs_dict = {}
-    for item in tqdm(ood_full):
-        key = str(item.info['charge']) + "_" + str(item.info['spin'])
-        try:
-            ood_cs_dict[key].append(item)
-        except KeyError:
-            ood_cs_dict[key] = [item]
-
-    # Split by charge/spin pair
-    # Use this for relative energies
+    
     full_chargespin_path = os.path.join(full_data_path, "by_charge_spin")
     if not os.path.exists(full_chargespin_path):
         os.mkdir(full_chargespin_path)
-
-    for key in test_cs_dict:
-        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240916_train_'+key+'.xyz')
-        ase.io.write(file, train_cs_dict[key], format="extxyz")
-        
-        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240916_val_'+key+'.xyz')
-        ase.io.write(file, val_cs_dict[key],format="extxyz")
-        
-        file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240916_test_'+key+'.xyz')
-        ase.io.write(file, test_cs_dict[key],format="extxyz")
-
-        if key in ood_cs_dict:
-            file = os.path.join(full_chargespin_path,'radqm9_65_10_25_trajectory_full_data_20240916_ood_'+key+'.xyz')
-            ase.io.write(file, ood_cs_dict[key], format="extxyz")
 
     # Doublet
     full_doublet_path = os.path.join(full_data_path, "doublet")
@@ -823,37 +499,10 @@ if __name__ == "__main__":
         os.mkdir(full_doublet_path)
 
     doublet_train = []
-    doublet_val = []
-    doublet_test = []
-    doublet_ood = []
-
-    for item in tqdm(build_full['train']):
+    
+    for item in tqdm(data):
         if item.info['spin'] == 2:
             doublet_train.append(item)
-
-    for item in tqdm(build_full['val']):
-        if item.info['spin'] == 2:
-            doublet_val.append(item)
-
-    for item in tqdm(build_full['test']):
-        if item.info['spin'] == 2:
-            doublet_test.append(item)
-
-    for item in tqdm(ood_full):
-        if item.info['spin'] == 2:
-            doublet_ood.append(item)
-
-    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240916_doublet_train.xyz')
-    ase.io.write(file, doublet_train, format="extxyz")
-    
-    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240916_doublet_val.xyz')
-    ase.io.write(file, doublet_val,format="extxyz")
-    
-    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240916_doublet_test.xyz')
-    ase.io.write(file, doublet_test,format="extxyz")
-
-    file = os.path.join(full_doublet_path,'radqm9_65_10_25_trajectory_full_data_20240916_doublet_ood.xyz')
-    ase.io.write(file, doublet_ood, format="extxyz")
 
     # Neutral
     full_neutral_path = os.path.join(full_data_path, "neutral")
@@ -861,41 +510,15 @@ if __name__ == "__main__":
         os.mkdir(full_neutral_path)
 
     neutral_train = []
-    neutral_val = []
-    neutral_test = []
-    neutral_ood = []
 
     for item in tqdm(build_full['train']):
         if item.info['charge'] == 0:
             neutral_train.append(item)
 
-    for item in tqdm(build_full['val']):
-        if item.info['charge'] == 0:
-            neutral_val.append(item)
-
-    for item in tqdm(build_full['test']):
-        if item.info['charge'] == 0:
-            neutral_test.append(item)
-
-    for item in tqdm(ood_full):
-        if item.info['charge'] == 0:
-            neutral_ood.append(item)
-
-    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240916_neutral_train.xyz')
-    ase.io.write(file, neutral_train, format="extxyz")
-    
-    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240916_neutral_val.xyz')
-    ase.io.write(file, neutral_val, format="extxyz")
-    
-    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240916_neutral_test.xyz')
-    ase.io.write(file, neutral_test, format="extxyz")
-
-    file = os.path.join(full_neutral_path,'radqm9_65_10_25_trajectory_full_data_20240916_neutral_ood.xyz')
-    ase.io.write(file, neutral_ood, format="extxyz")
-
     fractions = [.01, .05, .1, .25, .5, .75]
 
-    wtd_full = weight_to_data_ase(build_full["train"])
+    # TODO: worst comes to worst, change this to chunk by weight and charge
+    wtd_full = weight_to_data_ase(data)
     cd_full = chunk_data(wtd_full, fractions)
     
     wtd_cs = dict()
@@ -911,15 +534,15 @@ if __name__ == "__main__":
     cd_neutral = chunk_data(wtd_neutral, fractions)
 
     for ii, frac in enumerate(fractions):
-        chunk_file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240916_train_subset_' + f'{frac}.xyz')
+        chunk_file = os.path.join(full_data_path, 'radqm9_65_10_25_trajectory_full_data_20240918_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_full[ii],format="extxyz")
         
         for key in cd_cs:
-            chunk_file = os.path.join(full_chargespin_path, 'radqm9_65_10_25_trajectory_full_data_20240916_train_subset_' + key + f'_{frac}.xyz')
+            chunk_file = os.path.join(full_chargespin_path, 'radqm9_65_10_25_trajectory_full_data_20240918_train_subset_' + key + f'_{frac}.xyz')
             ase.io.write(chunk_file, cd_cs[key][ii], format="extxyz")
             
-        chunk_file = os.path.join(full_doublet_path, 'radqm9_65_10_25_trajectory_full_data_20240916_doublet_train_subset_' + f'{frac}.xyz')
+        chunk_file = os.path.join(full_doublet_path, 'radqm9_65_10_25_trajectory_full_data_20240918_doublet_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_doublet[ii],format="extxyz")
         
-        chunk_file = os.path.join(full_neutral_path, 'radqm9_65_10_25_trajectory_full_data_20240916_neutral_train_subset_' + f'{frac}.xyz')
+        chunk_file = os.path.join(full_neutral_path, 'radqm9_65_10_25_trajectory_full_data_20240918_neutral_train_subset_' + f'{frac}.xyz')
         ase.io.write(chunk_file, cd_neutral[ii],format="extxyz")
