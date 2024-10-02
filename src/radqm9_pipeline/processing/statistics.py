@@ -45,36 +45,21 @@ if __name__ == "__main__":
         # Very 
         config_type_weights = {"Default": 1.0}
 
-    _, all_data_configs = data.load_from_xyz(
-        file_path=args.file,
-        config_type_weights=config_type_weights,
-        energy_key=args.energy_key,
-        forces_key=args.forces_key,
-        stress_key=args.stress_key,
-        virials_key=args.virials_key,
-        dipole_key=args.dipole_key,
-        charges_key=args.charges_key,
-        extract_atomic_energies=False,
-    )
-
     if args.atomic_numbers is None:
-        z_table = tools.get_atomic_number_table_from_zs(
-            z
-            for z in all_data_configs.atomic_numbers
-        )
-    else:
-        # logging.info("Using atomic numbers from command line argument")
-        zs_list = ast.literal_eval(args.atomic_numbers)
-        assert isinstance(zs_list, list)
-        z_table = tools.get_atomic_number_table_from_zs(zs_list)
+        raise ValueError("No atomic numbers provided!")
+
+    # logging.info("Using atomic numbers from command line argument")
+    zs_list = ast.literal_eval(args.atomic_numbers)
+    assert isinstance(zs_list, list)
+    z_table = tools.get_atomic_number_table_from_zs(zs_list)
     
     logging.info("Computing statistics")
-    if len(atomic_energies_dict) == 0:
-        atomic_energies_dict = {z: 0.0 for z in z_table.zs}
+    logging.info("Ignoring atomic energies")
+    atomic_energies_dict = {z: 0.0 for z in z_table.zs}
     atomic_energies: np.ndarray = np.array(
         [0.0 for z in z_table.zs]
     )
-    _inputs = [args.h5_prefix+'train', z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
+    _inputs = [args.h5_prefix, z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
     avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
     logging.info(f"Average number of neighbors: {avg_num_neighbors}")
     logging.info(f"Mean: {mean}")
