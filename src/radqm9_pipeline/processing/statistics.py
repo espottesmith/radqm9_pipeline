@@ -4,6 +4,8 @@ import logging
 import multiprocessing as mp
 from typing import List, Tuple
 
+import tqdm
+
 import numpy as np
 
 import torch_geometric
