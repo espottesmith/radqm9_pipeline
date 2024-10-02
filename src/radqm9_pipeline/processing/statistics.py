@@ -2,6 +2,8 @@ import ast
 import logging
 from typing import List, Tuple
 
+import numpy as np
+
 import torch_geometric
 
 from mace import tools, data
