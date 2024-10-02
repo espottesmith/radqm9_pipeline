@@ -60,7 +60,7 @@ if __name__ == "__main__":
     atomic_energies: np.ndarray = np.array(
         [0.0 for z in z_table.zs]
     )
-    _inputs = [args.h5_prefix, z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
+    _inputs = [args.prefix, z_table, args.r_max, atomic_energies, args.batch_size, args.num_process]
     avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
     logging.info(f"Average number of neighbors: {avg_num_neighbors}")
     logging.info(f"Mean: {mean}")
