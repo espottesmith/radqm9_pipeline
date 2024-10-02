@@ -1,5 +1,5 @@
 import ast
-import glob
+from glob import glob
 import logging
 import multiprocessing as mp
 from typing import List, Tuple
