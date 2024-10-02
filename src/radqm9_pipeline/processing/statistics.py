@@ -76,6 +76,6 @@ if __name__ == "__main__":
         "r_max": args.r_max,
     }
     
-    with open(args.directory + '/' + args.prefix + "statistics.json", "w") as f:
+    with open(args.prefix + "/statistics.json", "w") as f:
         json.dump(statistics, f)
     
