@@ -132,7 +132,7 @@ def compute_stats_target(
         total_charge_table=total_charge_table,
         spin_table=spin_table
     )
-    train_loader = torch_geometric.dataloader.DataLoader(
+    train_loader = torch_geometric.loader.DataLoader(
         dataset=train_dataset, 
         batch_size=batch_size, 
         shuffle=False,
