@@ -10,9 +10,8 @@ import tqdm
 
 import numpy as np
 
-import torch_geometric
-
 from mace import tools, data
+from mace_tools import torch_geometric
 from mace.tools.utils import AtomicNumberTable, TotalChargeTable, SpinTable
 from mace.modules import compute_statistics
 
@@ -132,7 +131,7 @@ def compute_stats_target(
         total_charge_table=total_charge_table,
         spin_table=spin_table
     )
-    train_loader = torch_geometric.loader.DataLoader(
+    train_loader = torch_geometric.dataloader.DataLoader(
         dataset=train_dataset, 
         batch_size=batch_size, 
         shuffle=False,
