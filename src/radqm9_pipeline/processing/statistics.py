@@ -175,6 +175,16 @@ if __name__ == "__main__":
     zs_list = ast.literal_eval(args.atomic_numbers)
     assert isinstance(zs_list, list)
     z_table = tools.get_atomic_number_table_from_zs(zs_list)
+
+    charges_list = ast.literal_eval(args.total_charges)
+    assert isinstance(charges_list, list)
+    assert all([isinstance(x, int) for x in charges_list])
+    charges_table = TotalChargeTable(charges_list)
+
+    spins_list = ast.literal_eval(args.spins)
+    assert isinstance(spins_list, list)
+    assert all([isinstance(x, int) for x in spins_list])
+    spins_table = SpinTable(spins_list)
     
     logging.info("Computing statistics")
     logging.info("Ignoring atomic energies")
@@ -182,7 +192,7 @@ if __name__ == "__main__":
     atomic_energies: np.ndarray = np.array(
         [0.0 for z in z_table.zs]
     )
-    _inputs = [args.prefix, z_table, args.r_max, atomic_energies, args.batch_size, args.total_charges, args.spins, args.num_process]
+    _inputs = [args.prefix, z_table, args.r_max, atomic_energies, args.batch_size, charges_table, spins_table, args.num_process]
     avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
     logging.info(f"Average number of neighbors: {avg_num_neighbors}")
     logging.info(f"Mean: {mean}")
