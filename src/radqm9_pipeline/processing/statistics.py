@@ -11,7 +11,7 @@ import tqdm
 import numpy as np
 
 from mace import tools, data
-from mace_tools import torch_geometric
+from mace.tools import torch_geometric
 from mace.tools.utils import AtomicNumberTable, TotalChargeTable, SpinTable
 from mace.modules import compute_statistics
 
