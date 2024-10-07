@@ -148,7 +148,7 @@ def pool_compute_stats(inputs: List):
     path_to_files, z_table, r_max, atomic_energies, batch_size, total_charges, spins, num_process = inputs
     pool = mp.Pool(processes=num_process)
     
-    re=[pool.apply_async(compute_stats_target, args=(file, z_table, r_max, atomic_energies, batch_size, total_charges, spins)) for file in glob(path_to_files+'/*')]
+    re=[pool.apply_async(compute_stats_target, args=(file, z_table, r_max, atomic_energies, batch_size, total_charges, spins)) for file in glob(path_to_files+'/*.h5')]
     
     pool.close()
     pool.join()
