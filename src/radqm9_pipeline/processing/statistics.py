@@ -156,8 +156,6 @@ def pool_compute_stats(inputs: List):
     return np.average(results, axis=0)
 
 
-#TODO: TypeError: HDF5Dataset.__init__() missing 2 required positional arguments: 'total_charge_table' and 'spin_table'
-
 if __name__ == "__main__":
     args = build_arg_parser().parse_args()
 
@@ -192,8 +190,16 @@ if __name__ == "__main__":
     atomic_energies: np.ndarray = np.array(
         [0.0 for z in z_table.zs]
     )
-    _inputs = [args.prefix, z_table, args.r_max, atomic_energies, args.batch_size, charges_table, spins_table, args.num_process]
-    avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
+
+    if args.num_process == 1:
+        stats = list()
+        for file in os.listdir("."):
+            stats.append(compute_stats_target(args.prefix, z_table, args.r_max, atomic_energies, args.batch_size, charges_table, spins_table))
+
+        avg_num_neighbors, mean, std = np.average(results, axis=0)
+    else:
+        _inputs = [args.prefix, z_table, args.r_max, atomic_energies, args.batch_size, charges_table, spins_table, args.num_process]
+        avg_num_neighbors, mean, std = pool_compute_stats(_inputs)
     logging.info(f"Average number of neighbors: {avg_num_neighbors}")
     logging.info(f"Mean: {mean}")
     logging.info(f"Standard deviation: {std}")
