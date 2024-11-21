@@ -317,8 +317,8 @@ def expanded_config_from_atoms(
     stress_key="stress",
     virials_key="virials",
     dipole_key="dipole_moments",
-    charges_key="charges",
-    total_charge_key="mulliken_partial_charges",
+    charges_key="mulliken_partial_charges",
+    total_charge_key="charge",
     spin_key="spin",
     config_type_weights: Dict[str, float] = None,
 ) -> ExpandedConfiguration:
